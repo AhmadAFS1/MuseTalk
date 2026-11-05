@@ -84,7 +84,8 @@ if [[ "${CHARACTER_WORKER_RUNTIME_MODE:-source}" == prebuilt && "$MODE" != build
   step_status "verifying immutable prebuilt runtime"
   manifest_args=(verify --repo "$REPO_ROOT" --workspace "$WORKSPACE"
     --manifest "${CHARACTER_WORKER_RUNTIME_MANIFEST:-/opt/character-runtime/manifest.json}"
-    --models "$REPO_ROOT/docker/character-runtime/preparation-models.json")
+    --models "$REPO_ROOT/docker/character-runtime/preparation-models.json"
+    --failure-report "$ROOT/runtime_manifest_failure.json")
   [[ -n "${CHARACTER_WORKER_RUNTIME_MANIFEST_SHA256:-}" ]] && manifest_args+=(--expected-sha256 "$CHARACTER_WORKER_RUNTIME_MANIFEST_SHA256")
   CUDA_VISIBLE_DEVICES="" python3 "$SCRIPT_DIR/runtime_manifest.py" "${manifest_args[@]}" || die "prebuilt runtime verification failed; build a new pinned image (no automatic source repair)"
 fi

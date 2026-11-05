@@ -70,16 +70,50 @@ def snapshot(repo, workspace, model_lock):
             'phone_student_checkpoint_sha256':'a05d2d98f69b431252458d3b25f72e395d557ba693821baee91d11f5fe5a96cd',
             'source_fps':24,'phone_render_fps':25,'image_digest_location':'external pinned deployment descriptor'}
 
+def verify(repo, workspace, models, target, expected_sha, report=None):
+    failure = {'code': 'manifest_snapshot_failed'}
+    if report:
+        report.unlink(missing_ok=True)
+    try:
+        if expected_sha and digest(target) != expected_sha:
+            failure['code'] = 'manifest_digest_mismatch'
+            raise ValueError('runtime manifest digest differs from deployment pin')
+        expected = json.loads(target.read_text())
+        actual = snapshot(repo, workspace, models)
+        if expected != actual:
+            keys = sorted(key for key, value in actual.items()
+                          if not isinstance(expected, dict) or key not in expected or expected[key] != value)
+            if not isinstance(expected, dict) or expected.keys() - actual.keys():
+                keys.append('unexpected_fields')
+            failure = {'code': 'manifest_snapshot_mismatch', 'keys': keys}
+            raise ValueError('prebuilt runtime differs from manifest; changed fields: ' + ', '.join(keys))
+        return actual
+    except Exception as error:
+        if report:
+            tmp = report.with_suffix('.tmp')
+            tmp.write_text(json.dumps({**failure, 'error_class': type(error).__name__}) + '\n')
+            tmp.replace(report)
+        raise
+
+
 def main():
-    ap=argparse.ArgumentParser();ap.add_argument('mode',choices=['record','verify']);ap.add_argument('--repo',required=True);ap.add_argument('--workspace',default='/workspace');ap.add_argument('--manifest',default='/opt/character-runtime/manifest.json');ap.add_argument('--models',required=True);ap.add_argument('--expected-sha256');a=ap.parse_args()
-    os.chdir(a.repo)
-    target=Path(a.manifest)
-    if a.mode=='verify' and a.expected_sha256 and digest(target)!=a.expected_sha256:
-        raise ValueError('runtime manifest digest differs from deployment pin')
-    actual=snapshot(a.repo,a.workspace,a.models)
-    if a.mode=='record':
-        target.parent.mkdir(parents=True,exist_ok=True);target.write_text(json.dumps(actual,sort_keys=True,indent=2)+'\n')
-    elif json.loads(target.read_text())!=actual:
-        raise ValueError('prebuilt runtime differs from manifest; repair requires a separately built image')
-    print(json.dumps({'schema':SCHEMA,'verified':True,'sha256':digest(target),'source_revision':actual['source_revision']}))
+    parser = argparse.ArgumentParser()
+    parser.add_argument('mode', choices=['record', 'verify'])
+    parser.add_argument('--repo', required=True)
+    parser.add_argument('--workspace', default='/workspace')
+    parser.add_argument('--manifest', type=Path, default=Path('/opt/character-runtime/manifest.json'))
+    parser.add_argument('--models', required=True)
+    parser.add_argument('--expected-sha256')
+    parser.add_argument('--failure-report', type=Path)
+    args = parser.parse_args()
+    os.chdir(args.repo)
+    if args.mode == 'record':
+        actual = snapshot(args.repo, args.workspace, args.models)
+        args.manifest.parent.mkdir(parents=True, exist_ok=True)
+        args.manifest.write_text(json.dumps(actual, sort_keys=True, indent=2) + '\n')
+    else:
+        actual = verify(args.repo, args.workspace, args.models, args.manifest, args.expected_sha256,
+                        args.failure_report)
+    print(json.dumps({'schema': SCHEMA, 'verified': True, 'sha256': digest(args.manifest),
+                      'source_revision': actual['source_revision']}))
 if __name__=='__main__': main()

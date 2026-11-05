@@ -38,4 +38,20 @@ class RuntimeManifestTest(unittest.TestCase):
         original=self.snapshot();(self.workspace/'minimax-h3/helper.py').write_text('tampered');self.assertNotEqual(self.snapshot(),original)
         with patch.object(mod,'command',side_effect=subprocess.CalledProcessError(1,['git','diff'])):
             with self.assertRaises(subprocess.CalledProcessError):mod.snapshot(self.repo,self.workspace,self.models)
+    def test_verify_rejects_os_package_drift_and_reports_only_field_names(self):
+        original = self.snapshot()
+        target = self.root / 'manifest.json'
+        target.write_text(json.dumps(original))
+        report = self.root / 'failure.json'
+        changed = {**original, 'os_packages': ['provider-apt-update=2.0']}
+        with patch.object(mod, 'snapshot', return_value=changed):
+            with self.assertRaisesRegex(ValueError, 'changed fields: os_packages'):
+                mod.verify(self.repo, self.workspace, self.models, target, mod.digest(target), report)
+        self.assertEqual(json.loads(report.read_text()), {
+            'code': 'manifest_snapshot_mismatch', 'keys': ['os_packages'], 'error_class': 'ValueError',
+        })
+        with patch.object(mod, 'snapshot', return_value=original):
+            self.assertEqual(mod.verify(self.repo, self.workspace, self.models, target, mod.digest(target), report),
+                             original)
+        self.assertFalse(report.exists())
 if __name__=='__main__':unittest.main()

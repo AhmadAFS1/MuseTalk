@@ -23,13 +23,14 @@ RUN test "$(git rev-parse HEAD)" = "$SOURCE_REVISION" && \
       --repo "$REPO_ROOT" --models docker/character-runtime/preparation-models.json && \
     CUDA_VISIBLE_DEVICES="" python3 character_factory/character_worker/runtime_manifest.py verify \
       --repo "$REPO_ROOT" --models docker/character-runtime/preparation-models.json && \
-    rm -rf /root/.cache/pip /opt/musetalk/app/.git
+    rm -rf /root/.cache/pip /opt/musetalk/app/.git /workspace/character_worker && \
+    rm -f /etc/ssh/ssh_host_*
 LABEL org.opencontainers.image.title="Lingua character FL2VA preparation runtime" \
       org.opencontainers.image.revision="${SOURCE_REVISION}" \
       io.lingua.character.runtime="lingua-character-runtime/1" \
       io.lingua.character.gpu-qualification="required-before-promotion" \
       io.musetalk.release-channel="character-preparation-candidate"
 EXPOSE 22 8010
-# Vast executes the pinned template command; the default remains fail-closed.
-ENTRYPOINT []
-CMD ["/bin/bash", "-c", "echo 'Use the pinned character-factory template and runtime manifest' >&2; exit 64"]
+# Use Vast's docker ENTRYPOINT launch mode so provider SSH setup cannot alter the locked runtime.
+ENTRYPOINT ["/usr/bin/python3", "-u", "/opt/character-runtime/app/character_factory/character_worker/character_entrypoint.py"]
+CMD []

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Vast.ai on-start for the character-creation worker (MiniMax H3 three-pose + MuseTalk caches).
 #
-# Runs from a MuseTalk checkout (the template's on-start clones it, then execs this file).
+# Runs from the pinned MuseTalk checkout, supervised by the image entrypoint in prebuilt mode.
 # Order: preflight -> start the worker API (reports the install phase on /health at once)
 #        -> install (MuseTalk + avatar prep, runtime secret, pinned H3 runtime) -> verify -> ready.
 # Every exit path prints exactly one CHARACTER_WORKER_ONSTART COMPLETE or FAILED marker and
@@ -159,7 +159,23 @@ unset CHARACTER_WORKER_TLS_KEY_B64
 CURRENT_PHASE=install
 write_status install 0 0 "installing MuseTalk (avatar prep), runtime secret and the pinned H3 runtime"
 phase_start=$(date +%s)
-CHARACTER_WORKER_STATUS_FILE="$STATUS_FILE" bash "$SCRIPT_DIR/install_character_worker.sh" || die "installer failed; see $ONSTART_LOG and $ROOT/logs/"
+rm -f "$ROOT/runtime_manifest_failure.json"
+if ! CHARACTER_WORKER_STATUS_FILE="$STATUS_FILE" bash "$SCRIPT_DIR/install_character_worker.sh"; then
+  detail="$(python3 - "$ROOT/runtime_manifest_failure.json" <<'PY'
+import json, re, sys
+try:
+    data = json.load(open(sys.argv[1]))
+except (OSError, ValueError):
+    data = {}
+code = data.get('code')
+if code in ('manifest_snapshot_failed', 'manifest_digest_mismatch', 'manifest_snapshot_mismatch'):
+    keys = data.get('keys', [])
+    if isinstance(keys, list) and all(isinstance(key, str) and re.fullmatch(r'[a-z][a-z0-9_]{0,63}', key) for key in keys):
+        print(code + (': ' + ', '.join(keys) if keys else ''))
+PY
+)"
+  die "installer failed${detail:+ ($detail)}; see $ONSTART_LOG and $ROOT/logs/"
+fi
 log "install phase finished in $(( $(date +%s) - phase_start ))s"
 
 # ---------------------------------------------------------------- verify
