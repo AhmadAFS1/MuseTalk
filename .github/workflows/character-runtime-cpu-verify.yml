@@ -1,0 +1,56 @@
+name: Independent exact-image character CPU qualification
+on:
+  push:
+    branches: [codex/character-device-release]
+    paths: [.github/character-runtime-cpu-request.json]
+permissions:
+  contents: read
+concurrency:
+  group: character-runtime-cpu-qualification
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: github.repository == 'AhmadAFS1/MuseTalk'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Clean runner and validate exact image request
+        id: request
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup
+          mkdir -p "$RUNNER_TEMP/character-cpu-reports"
+          python3 - <<'PY'
+          import json,os,re
+          d=json.load(open('.github/character-runtime-cpu-request.json'))
+          assert set(d)=={'image','runtime_manifest_sha256'}
+          assert re.fullmatch('ghcr.io/ahmadafs1/musetalk-rtx3090@sha256:[0-9a-f]{64}',d['image'])
+          assert re.fullmatch('[0-9a-f]{64}',d['runtime_manifest_sha256'])
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+              f.write('image='+d['image']+'\nmanifest='+d['runtime_manifest_sha256']+'\n')
+          PY
+      - name: Pull exact private image and check startup offline
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE: ${{ steps.request.outputs.image }}
+          MANIFEST_SHA: ${{ steps.request.outputs.manifest }}
+        run: |
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker pull "$IMAGE"
+          docker run --rm --network none --entrypoint python3 "$IMAGE" character_factory/character_worker/runtime_manifest.py verify --repo /opt/character-runtime/app --models docker/character-runtime/preparation-models.json --expected-sha256 "$MANIFEST_SHA"
+          docker run --rm --network none --entrypoint python3 -v "$GITHUB_WORKSPACE/docker/character-runtime/cpu_startup_check.py:/cpu_startup_check.py:ro" -v "$RUNNER_TEMP/character-cpu-reports:/reports" "$IMAGE" /cpu_startup_check.py --report /reports/cpu-qualification.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: character-runtime-independent-cpu-qualification
+          path: ${{ runner.temp }}/character-cpu-reports/
+          retention-days: 7
+          if-no-files-found: warn
+      - name: Remove registry authentication
+        if: always()
+        run: docker logout ghcr.io
