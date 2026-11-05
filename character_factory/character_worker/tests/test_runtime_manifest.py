@@ -10,7 +10,7 @@ spec=importlib.util.spec_from_file_location('runtime_manifest',MODULE);mod=impor
 
 class RuntimeManifestTest(unittest.TestCase):
     def setUp(self):
-        self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup);self.root=Path(self.tmp.name);self.repo=self.root/'app';self.workspace=self.root/'workspace';self.repo.mkdir();self.workspace.mkdir()
+        self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup);self.root=Path(self.tmp.name);self.repo=self.root/'app';self.workspace=self.root/'workspace';self.repo.mkdir();self.workspace.mkdir();(self.workspace/'MuseTalk').symlink_to(self.repo,target_is_directory=True)
         h3=self.workspace/'minimax-h3-workflows';(h3/'locks').mkdir(parents=True);(h3/'locks/comfyui.lock.json').write_text(json.dumps({'commit':'comfy'}));(self.workspace/'minimax-h3').mkdir();(self.workspace/'minimax-h3/helper.py').write_text('original');(self.workspace/'minimax-h3/extra_model_paths_h3.yaml').write_text('paths');
         lock=self.repo/'character_factory/character_worker/locks/character_worker.lock.json';lock.parent.mkdir(parents=True);lock.write_text(json.dumps({'h3_workflows':{'commit':'h3','model_profile':'character-fl2va','lib_copies':['helper.py']}}))
         (self.repo/'source.py').write_text('source');(self.repo/'weight').write_bytes(b'weight');self.models=self.repo/'models.json';self.models.write_text(json.dumps({'files':{'weight':{'size_bytes':6,'sha256':mod.digest(self.repo/'weight')}}}))

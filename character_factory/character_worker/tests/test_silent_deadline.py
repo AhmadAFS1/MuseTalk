@@ -5,6 +5,8 @@ from pathlib import Path
 import sys
 import tempfile
 import threading
+import subprocess
+import signal
 import time
 import unittest
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
@@ -27,4 +29,22 @@ class SilentSubprocessTest(unittest.TestCase):
                     pipeline.run_logged(job,[sys.executable,'-c','import time;time.sleep(60)'],cwd=root,env=dict(os.environ),timeout=60,log_name='silent.log')
             finally:timer.cancel()
             self.assertIsNone(job.process)
+    def test_orphaned_child_is_killed_even_after_original_parent_exits(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);pidfile=root/'child.pid'
+            child="import os,signal,time;signal.signal(signal.SIGTERM,signal.SIG_IGN);open("+repr(str(pidfile))+",'w').write(str(os.getpid()));time.sleep(60)"
+            parent="import subprocess,sys;subprocess.Popen([sys.executable,'-c',"+repr(child)+"])"
+            proc=subprocess.Popen([sys.executable,'-c',parent],start_new_session=True)
+            proc.wait(timeout=3)
+            deadline=time.monotonic()+3
+            while not pidfile.exists() and time.monotonic()<deadline:time.sleep(.02)
+            pid=int(pidfile.read_text())
+            try:
+                pipeline.terminate(proc,grace=.2)
+                time.sleep(.1)
+                state=subprocess.run(['ps','-o','stat=','-p',str(pid)],capture_output=True,text=True).stdout.strip()
+                self.assertTrue(not state or state.startswith('Z'),state)
+            finally:
+                try:os.kill(pid,signal.SIGKILL)
+                except ProcessLookupError:pass
 if __name__=='__main__':unittest.main()

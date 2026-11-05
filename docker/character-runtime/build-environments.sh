@@ -3,6 +3,7 @@
 set -Eeuo pipefail
 REPO_ROOT="${REPO_ROOT:-/opt/character-runtime/app}"
 WORKSPACE="${WORKSPACE:-/workspace}"
+[[ -e "$WORKSPACE/MuseTalk" ]] || ln -s "$REPO_ROOT" "$WORKSPACE/MuseTalk"
 mkdir -p "$WORKSPACE/.venvs" "$WORKSPACE/character_worker/logs"
 # Keep the dependency base's venv at its original absolute prefix.
 [[ -e "$WORKSPACE/.venvs/musetalk_trt_stagewise" ]] || ln -s /opt/musetalk/venv "$WORKSPACE/.venvs/musetalk_trt_stagewise"

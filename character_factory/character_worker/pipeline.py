@@ -250,7 +250,7 @@ def run_logged(job: Job, cmd: list, *, cwd: Path, env: dict, timeout: int, log_n
                     heartbeat = time.monotonic()
             proc.wait()
         finally:
-            if proc.poll() is None: terminate(proc)
+            terminate(proc)
             reader.join(timeout=2)
             if proc.stdout is not None: proc.stdout.close()
             job.process = None
@@ -258,19 +258,26 @@ def run_logged(job: Job, cmd: list, *, cwd: Path, env: dict, timeout: int, log_n
     return proc.returncode
 
 
-def terminate(proc: subprocess.Popen, grace: int = 60) -> None:
+def terminate(proc: subprocess.Popen, grace: int = 10) -> None:
+    """Stop the owned group even when its original parent already exited."""
     try:
         os.killpg(proc.pid, signal.SIGTERM)
     except ProcessLookupError:
-        return
-    try:
-        proc.wait(timeout=grace)
-    except subprocess.TimeoutExpired:
-        try:
-            os.killpg(proc.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
         proc.wait()
+        return
+    deadline = time.monotonic() + grace
+    while time.monotonic() < deadline:
+        proc.poll()  # reap the direct child so its zombie cannot keep the group alive
+        try: os.killpg(proc.pid, 0)
+        except ProcessLookupError: break
+        except PermissionError:
+            if proc.poll() is not None: break
+            raise
+        time.sleep(0.05)
+    else:
+        try: os.killpg(proc.pid, signal.SIGKILL)
+        except ProcessLookupError: pass
+    proc.wait()
 
 
 # ----------------------------------------------------------------------------- stages
@@ -476,7 +483,7 @@ class MuseTalkServer:
             return ''
 
     def stop(self) -> None:
-        if self.proc and self.proc.poll() is None:
+        if self.proc is not None:
             self.job.log('stopping MuseTalk API')
             terminate(self.proc, grace=90)
         self.proc = None

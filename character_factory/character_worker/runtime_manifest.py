@@ -23,6 +23,8 @@ def snapshot(repo, workspace, model_lock):
     repo, workspace = Path(repo), Path(workspace)
     lock_path = repo/'character_factory/character_worker/locks/character_worker.lock.json'
     lock = json.loads(lock_path.read_text()); h3 = workspace/'minimax-h3-workflows'
+    if (workspace/'MuseTalk').resolve() != repo.resolve():
+        raise ValueError('legacy preparation import path must resolve to the pinned source')
     models = json.loads(Path(model_lock).read_text())
     for name, spec in models['files'].items():
         path = repo/name
