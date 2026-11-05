@@ -71,6 +71,9 @@ POST /worker/drain | /worker/undrain
 
 The six metadata fields `label, age, gender, hair, tone, facial_hair` select the exact accepted talking prompt
 builder; without them the generic identity prompt is used and the response says so in `warnings`.
+Recipe `h3-three-pose-20260927-v2-reference-defaults` preserves the exact reference clothing and background
+when those fields are omitted. Explicit wardrobe/background text retains the accepted v1 prompt bytes.
+The new recipe and plan signature reject reuse of older checkpoints that may contain invented scenery.
 
 The controller may provide `external_id` and `options.submission_id`. Repeating that pair returns the
 original remote job, including after a lost response or worker API restart. Different normalized

@@ -1,7 +1,7 @@
 """Identity-adapted H3 prompts with the selected pose motion unchanged."""
 from create_avatar import prompt as accepted_talking_prompt
 
-VERSION = 'h3-three-pose-20260927-v1'
+VERSION = 'h3-three-pose-20260927-v2-reference-defaults'
 POSES = ('idle', 'talking', 'smiling')
 NATIVE_FRAMES = {'idle': 243, 'talking': 243, 'smiling': 158}
 DELIVERY_FRAMES = {'idle': 240, 'talking': 240, 'smiling': 158}

@@ -1,8 +1,8 @@
 {
   "_doc": "Pins for the Vast.ai character-creation worker. Change a pin here, never in the scripts.",
   "recipe": {
-    "name": "h3-three-pose-20260927-v1",
-    "description": "Three MiniMax H3 FL2VA pose loops (idle, talking, smiling) from one portrait, shared exact anchor endpoints, production MuseTalk v15 caches published to S3 through POST /avatars/prepare.",
+    "name": "h3-three-pose-20260927-v2-reference-defaults",
+    "description": "Three MiniMax H3 FL2VA pose loops from one portrait, exact reference-image clothing/background when metadata omits them, shared anchor endpoints and MuseTalk v15 caches. Explicit authored wardrobe/background prompts retain their original text.",
     "generator": "character_factory/h3_avatar_workflow/batch_three_pose.py"
   },
   "h3_workflows": {

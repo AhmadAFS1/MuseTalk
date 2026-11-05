@@ -10,9 +10,9 @@ GPU_STAGES={'h3','prepare','render'}
 def prompt(a):
     pronoun='She' if a['gender']=='woman' else 'He';possessive='her' if a['gender']=='woman' else 'his'
     identity=a['label'].split(',')[0]
-    wardrobe=a.get('wardrobe', 'navy crew-neck knit top')
-    background=a.get('background', 'softly blurred home office')
-    clothing_reference=a.get('wardrobe', 'navy top')
+    wardrobe=a.get('wardrobe') or 'the exact clothing in the reference image'
+    background=a.get('background') or 'the exact background in the reference image'
+    clothing_reference=a.get('wardrobe') or 'clothing from the reference image'
     beard='' if a['facial_hair'] in ('none','clean-shaven') else f" Maintain {possessive} {a['facial_hair']} consistently, including individual hairs and the visible lip border."
     return (f"Vertical 9:16 photorealistic FaceTime close-up. the same {identity} from the reference image, about {a['age']}, "
         f"{a['hair']}, {a['tone']}, {wardrobe}, {background}. {pronoun} looks straight into the lens "
