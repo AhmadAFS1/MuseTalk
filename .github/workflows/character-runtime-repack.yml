@@ -65,7 +65,10 @@ jobs:
           sudo chown -- "$owner" "$scratch/staged" "$scratch/docker-metadata.json" "$reports/repack.json"
           sudo chown -R -- "$owner" "$docker_image_dir"
           local_image=lingua-character-repack:ci
-          skopeo copy "dir:$docker_image_dir" "docker-daemon:$local_image"
+          archive="$scratch/docker-load.tar"
+          skopeo copy "dir:$docker_image_dir" "docker-archive:$archive:$local_image"
+          docker load --input "$archive"
+          unlink "$archive"
           test "$(docker image inspect "$local_image" -f '{{.Id}}')" = "$(jq -r .config_digest "$reports/repack.json")"
           test "$(docker image inspect "$local_image" -f '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = "$APPROVED_REVISION"
           docker run --rm --read-only --network none --entrypoint python3 \

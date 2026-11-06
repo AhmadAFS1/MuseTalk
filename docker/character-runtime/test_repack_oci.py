@@ -125,11 +125,20 @@ class RepackTest(unittest.TestCase):
         verify_filesystems(source, candidate_bundle / "rootfs")
 
         docker = self.root / "docker"
-        docker_digest, _ = docker_directory(candidate, candidate_manifest, docker)
+        docker_digest, config_digest = docker_directory(candidate, candidate_manifest, docker)
         staged = self.root / "staged"
         self.assertEqual(stage_source(docker, staged, docker_digest), read_layout(candidate, "candidate"))
         with self.assertRaisesRegex(ValueError, "differs from approved"):
             stage_source(docker, self.root / "bad", "sha256:" + "0" * 64)
+
+        if shutil.which("skopeo") and shutil.which("docker"):
+            archive = self.root / "docker-load.tar"
+            image = "lingua-character-repack-fixture:ci"
+            subprocess.run(["skopeo", "copy", f"dir:{docker}", f"docker-archive:{archive}:{image}"], check=True)
+            subprocess.run(["docker", "load", "--input", archive], check=True)
+            self.addCleanup(subprocess.run, ["docker", "image", "rm", image], check=True)
+            actual = subprocess.check_output(["docker", "image", "inspect", image, "-f", "{{.Id}}"], text=True)
+            self.assertEqual(actual.strip(), config_digest)
 
 
 if __name__ == "__main__":
