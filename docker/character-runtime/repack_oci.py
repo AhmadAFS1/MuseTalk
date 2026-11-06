@@ -488,7 +488,8 @@ def main():
     args.docker_fixture.write_text(json.dumps(docker_metadata_fixture(rows)))
     shutil.rmtree(source_bundle)
     shutil.rmtree(candidate_bundle)
-    require_space(args.work, 54 * GIB)
+    # Docker load may retain the archive, an extracted copy, and unpacked layers concurrently.
+    require_space(args.work, 82 * GIB)
     docker_manifest, config = docker_directory(output, manifest, args.work / "docker-image")
     shutil.rmtree(output)
     args.report.write_text(json.dumps({
