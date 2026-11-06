@@ -352,6 +352,7 @@ def split_musetalk_git_pack(root, expected_revision, pack_limit="512m"):
 
     original_files = files(packs, allow_reverse_index=True)
     original_sizes = {str(entry.relative_to(root)): entry.stat().st_size for entry in original_files}
+    pack_mtime_ns = max(entry.stat().st_mtime_ns for entry in original_files if entry.suffix == ".pack")
     pack_info = packs.stat()
     originals = root_inventory(root)
     source_identity = identity()
@@ -377,6 +378,7 @@ def split_musetalk_git_pack(root, expected_revision, pack_limit="512m"):
         for entry in original_files:
             entry.unlink()
         for entry in replacement:
+            os.utime(entry, ns=(pack_mtime_ns, pack_mtime_ns))
             entry.replace(packs / entry.name)
         os.utime(packs, ns=(pack_info.st_atime_ns, pack_info.st_mtime_ns))
     if identity() != source_identity or inventory() != object_rows:
@@ -396,6 +398,7 @@ def split_musetalk_git_pack(root, expected_revision, pack_limit="512m"):
         "new_pack_files_sha256": fingerprints(new_paths, normalized),
         "old_pack_files_bytes": original_sizes,
         "new_pack_files_bytes": {path: (root / path).stat().st_size for path in sorted(new_paths)},
+        "new_pack_mtime_ns": pack_mtime_ns,
         "all_object_inventory_sha256": hashlib.sha256(b"\n".join(object_rows) + b"\n").hexdigest(),
         "object_count": len(object_rows), "git_fsck": "passed",
         "head_refs_and_index_equal": True, "rootfs_equal_outside_pack_representation": True,

@@ -59,6 +59,7 @@ class RepackTest(unittest.TestCase):
         git("pack-objects", "--window=0", str(packdir / "pack"), input=objects)
         pack = next(packdir.glob("*.pack"))
         git("index-pack", "--rev-index", str(pack))
+        mtime = pack.stat().st_mtime_ns
         git("prune-packed")
         keep = pack.with_suffix(".keep")
         keep.touch()
@@ -70,6 +71,7 @@ class RepackTest(unittest.TestCase):
         self.assertEqual(git("cat-file", "-p", unreachable.decode()), b"unreferenced test object")
         self.assertEqual(report["object_count"], len(objects.splitlines()))
         self.assertTrue(any(path.endswith(".rev") for path in report["old_pack_files_sha256"]))
+        self.assertTrue(all(entry.stat().st_mtime_ns == mtime for entry in packdir.iterdir()))
         self.assertTrue(report["rootfs_equal_outside_pack_representation"])
 
     @unittest.skipUnless(os.geteuid() == 0 and shutil.which("umoci"),
