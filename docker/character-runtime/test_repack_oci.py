@@ -1,14 +1,15 @@
 import os
 from pathlib import Path
+import random
 import shutil
 import subprocess
 import tempfile
 import unittest
 
 from repack_oci import (
-    CONFIG, MANIFEST, Member, docker_directory, docker_metadata_fixture, partition, read_layout,
-    repack, root_inventory, stage_source, verify_config, verify_filesystems, walk, write_json_blob,
-    write_layer, write_layout,
+    CONFIG, MANIFEST, MUSETALK, Member, docker_directory, docker_metadata_fixture, partition,
+    read_layout, repack, root_inventory, split_musetalk_git_pack, stage_source, verify_config,
+    verify_filesystems, walk, write_json_blob, write_layer, write_layout,
 )
 
 
@@ -36,6 +37,40 @@ class RepackTest(unittest.TestCase):
             walk(self.root)
         with self.assertRaisesRegex(ValueError, "configuration changed"):
             verify_config({"config": {"Entrypoint": ["a"]}}, {"config": {"Entrypoint": ["b"]}})
+
+    @unittest.skipUnless(hasattr(os, "listxattr"), "requires Linux filesystem metadata")
+    def test_split_preserves_pack_only_unreachable_objects_and_rejects_unknown_files(self):
+        repo = self.root / MUSETALK
+        repo.mkdir(parents=True)
+
+        def git(*args, **options):
+            return subprocess.run(["git", "-C", repo, *args], check=True, stdout=subprocess.PIPE, **options).stdout
+
+        git("init", "-q")
+        data = random.Random(17)
+        for filename in ("a", "b", "c"):
+            (repo / filename).write_bytes(data.randbytes(700_000))
+        git("add", "a", "b", "c")
+        git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", "fixture")
+        head = git("rev-parse", "HEAD").decode().strip()
+        unreachable = git("hash-object", "-w", "--stdin", input=b"unreferenced test object").strip()
+        objects = git("cat-file", "--batch-all-objects", "--batch-check=%(objectname)")
+        packdir = repo / ".git" / "objects" / "pack"
+        git("pack-objects", "--window=0", str(packdir / "pack"), input=objects)
+        pack = next(packdir.glob("*.pack"))
+        git("index-pack", "--rev-index", str(pack))
+        git("prune-packed")
+        keep = pack.with_suffix(".keep")
+        keep.touch()
+        with self.assertRaisesRegex(ValueError, "unsupported file"):
+            split_musetalk_git_pack(self.root, head, pack_limit="1m")
+        keep.unlink()
+        _, report = split_musetalk_git_pack(self.root, head, pack_limit="1m")
+        self.assertGreater(len(list(packdir.glob("*.pack"))), 1)
+        self.assertEqual(git("cat-file", "-p", unreachable.decode()), b"unreferenced test object")
+        self.assertEqual(report["object_count"], len(objects.splitlines()))
+        self.assertTrue(any(path.endswith(".rev") for path in report["old_pack_files_sha256"]))
+        self.assertTrue(report["rootfs_equal_outside_pack_representation"])
 
     @unittest.skipUnless(os.geteuid() == 0 and shutil.which("umoci"),
                          "requires Linux umoci with root privileges")

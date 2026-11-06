@@ -33,6 +33,7 @@ jobs:
           assert request == {
               'source_image': os.environ['APPROVED_IMAGE'],
               'runtime_manifest_sha256': os.environ['APPROVED_MANIFEST'],
+              'git_pack_representation': 'split_verified_musetalk_pack',
           }, 'unapproved re-layer source'
           PY
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup
@@ -57,6 +58,7 @@ jobs:
           sudo python3 docker/character-runtime/repack_oci.py \
             --source "$scratch/source-image" --source-digest "${APPROVED_IMAGE##*@}" \
             --consume-source --work "$scratch/staged" --report "$reports/repack.json" \
+            --split-musetalk-pack "$APPROVED_REVISION" \
             --docker-fixture "$scratch/docker-metadata.json"
           docker_image_dir="$scratch/staged/docker-image"
           owner="$(id -u):$(id -g)"

@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import stat
 import subprocess
@@ -26,6 +27,7 @@ DOCKER_MANIFEST = "application/vnd.docker.distribution.manifest.v2+json"
 DOCKER_CONFIG = "application/vnd.docker.container.image.v1+json"
 DOCKER_LAYER = "application/vnd.docker.image.rootfs.diff.tar.gzip"
 REF_ANNOTATION = "org.opencontainers.image.ref.name"
+MUSETALK = Path("opt/character-runtime/app")
 
 
 @dataclass(frozen=True)
@@ -292,15 +294,113 @@ def root_inventory(root, members=None):
     return rows
 
 
-def verify_filesystems(source, candidate):
-    originals = root_inventory(source)
-    copies = root_inventory(candidate)
+def verify_inventory(originals, copies):
     if originals.keys() != copies.keys():
         raise ValueError("source and candidate rootfs path sets differ")
     differing = [name for name, original in originals.items() if original != copies[name]]
     if differing:
         raise ValueError(f"rootfs metadata/content mismatch ({len(differing)}): {differing[:12]}")
+
+
+def verify_filesystems(source, candidate):
+    originals = root_inventory(source)
+    verify_inventory(originals, root_inventory(candidate))
     return originals
+
+
+def split_musetalk_git_pack(root, expected_revision, pack_limit="512m"):
+    repo = root / MUSETALK
+    objects = repo / ".git" / "objects"
+    packs = objects / "pack"
+    if any(path.is_symlink() or not path.is_dir() for path in (repo / ".git", objects, packs)):
+        raise ValueError("pack normalization requires standalone MuseTalk Git storage")
+    static_refs = [objects / "info" / filename for filename in ("alternates", "http-alternates", "packs")]
+    if any(path.exists() or path.is_symlink() for path in static_refs):
+        raise ValueError("pack normalization does not support alternates or static pack references")
+
+    def files(directory, allow_reverse_index=False):
+        entries = sorted(directory.iterdir())
+        suffixes = "pack|idx|rev" if allow_reverse_index else "pack|idx"
+        if not entries or any(
+            not re.fullmatch(rf"pack-[0-9a-f]{{40}}\.(?:{suffixes})", entry.name)
+            or entry.is_symlink() or not entry.is_file() or entry.stat().st_nlink != 1 for entry in entries
+        ):
+            raise ValueError("unsupported file in the MuseTalk pack directory")
+        stems = {entry.stem for entry in entries if entry.suffix == ".pack"}
+        if stems != {
+            entry.stem for entry in entries if entry.suffix == ".idx"
+        } or not {entry.stem for entry in entries if entry.suffix == ".rev"} <= stems:
+            raise ValueError("MuseTalk pack files and all indexes must be paired")
+        return entries
+
+    def git(*args, **options):
+        return subprocess.run(
+            ["git", "-C", str(repo), "-c", "pack.writeReverseIndex=false", *args], check=True,
+            stdout=subprocess.PIPE,
+            env={**os.environ, "GIT_OPTIONAL_LOCKS": "0", "GIT_NO_LAZY_FETCH": "1", "GIT_ALLOW_PROTOCOL": ""},
+            **options,
+        ).stdout
+
+    def identity():
+        return (git("rev-parse", "HEAD").strip(), git("for-each-ref", "--format=%(refname) %(objectname)"),
+                sha256_file(repo / ".git" / "index"))
+
+    def inventory():
+        return sorted(git(
+            "cat-file", "--batch-all-objects", "--batch-check=%(objectname) %(objecttype) %(objectsize)",
+        ).splitlines())
+
+    original_files = files(packs, allow_reverse_index=True)
+    original_sizes = {str(entry.relative_to(root)): entry.stat().st_size for entry in original_files}
+    pack_info = packs.stat()
+    originals = root_inventory(root)
+    source_identity = identity()
+    if source_identity[0].decode() != expected_revision:
+        raise ValueError("MuseTalk revision differs from approved packing source")
+    for entry in original_files:
+        if entry.suffix == ".rev":
+            git("index-pack", "--verify", "--rev-index", str(entry.with_suffix(".pack")))
+    object_rows = inventory()
+    if not object_rows or any(
+        not re.fullmatch(rb"[a-f0-9]{40} (?:blob|tree|commit|tag) [0-9]+", row) for row in object_rows
+    ):
+        raise ValueError("Git object inventory is missing or malformed")
+    with tempfile.TemporaryDirectory(prefix="repack-git-", dir=root.parent) as temporary:
+        temp = Path(temporary)
+        git(
+            "pack-objects", f"--max-pack-size={pack_limit}", "--window=0", "--threads=1", str(temp / "pack"),
+            input=b"\n".join(row.split(b" ", 1)[0] for row in object_rows) + b"\n",
+        )
+        replacement = files(temp)
+        if sum(entry.stat().st_size for entry in replacement) > 5_500_000_000:
+            raise ValueError("replacement Git pack representation exceeds scratch budget")
+        for entry in original_files:
+            entry.unlink()
+        for entry in replacement:
+            entry.replace(packs / entry.name)
+        os.utime(packs, ns=(pack_info.st_atime_ns, pack_info.st_mtime_ns))
+    if identity() != source_identity or inventory() != object_rows:
+        raise ValueError("MuseTalk Git identity or complete object inventory changed")
+    git("fsck", "--full", "--no-dangling")
+    normalized = root_inventory(root)
+    old_paths = {str(entry.relative_to(root)) for entry in original_files}
+    new_paths = {str(entry.relative_to(root)) for entry in files(packs)}
+    verify_inventory({key: value for key, value in originals.items() if key not in old_paths},
+                     {key: value for key, value in normalized.items() if key not in new_paths})
+
+    def fingerprints(paths, rows):
+        return {path: rows[path][-2][1] for path in sorted(paths)}
+
+    report = {
+        "old_pack_files_sha256": fingerprints(old_paths, originals),
+        "new_pack_files_sha256": fingerprints(new_paths, normalized),
+        "old_pack_files_bytes": original_sizes,
+        "new_pack_files_bytes": {path: (root / path).stat().st_size for path in sorted(new_paths)},
+        "all_object_inventory_sha256": hashlib.sha256(b"\n".join(object_rows) + b"\n").hexdigest(),
+        "object_count": len(object_rows), "git_fsck": "passed",
+        "head_refs_and_index_equal": True, "rootfs_equal_outside_pack_representation": True,
+    }
+    return normalized, report
 
 
 def docker_metadata_fixture(rows):
@@ -350,6 +450,7 @@ def main():
     parser.add_argument("--work", type=Path, required=True)
     parser.add_argument("--report", type=Path, required=True)
     parser.add_argument("--docker-fixture", type=Path, required=True)
+    parser.add_argument("--split-musetalk-pack", metavar="EXPECTED_COMMIT")
     parser.add_argument("--consume-source", action="store_true", help="Remove only the CI scratch OCI copy")
     args = parser.parse_args()
     if args.consume_source and (
@@ -373,11 +474,17 @@ def main():
         # The CI scratch copy is disposable after extracting the approved rootfs.
         shutil.rmtree(args.source)
     require_space(args.work, 55 * GIB)
-    manifest, layers = repack(source_bundle / "rootfs", output, source_config, "candidate")
+    source_rootfs = source_bundle / "rootfs"
+    if args.split_musetalk_pack:
+        rows, git_representation = split_musetalk_git_pack(source_rootfs, args.split_musetalk_pack)
+        require_space(args.work, 55 * GIB)
+    else:
+        rows, git_representation = root_inventory(source_rootfs), None
+    manifest, layers = repack(source_rootfs, output, source_config, "candidate")
     verify_config(source_config, read_layout(output, "candidate"))
     require_space(args.work, 29 * GIB)
     subprocess.run(["umoci", "unpack", "--image", f"{output}:candidate", str(candidate_bundle)], check=True)
-    rows = verify_filesystems(source_bundle / "rootfs", candidate_bundle / "rootfs")
+    verify_inventory(rows, root_inventory(candidate_bundle / "rootfs"))
     args.docker_fixture.write_text(json.dumps(docker_metadata_fixture(rows)))
     shutil.rmtree(source_bundle)
     shutil.rmtree(candidate_bundle)
@@ -390,7 +497,8 @@ def main():
         "docker_manifest": docker_manifest,
         "config_digest": config,
         "rootfs_paths_verified": len(rows),
-        "rootfs_and_config_equal": True,
+        "normalized_rootfs_and_original_config_equal": True,
+        "git_storage_representation": git_representation,
         "layer_count": len(layers),
         "compressed_bytes": sum(layer["size"] for layer in layers),
         "largest_layer_bytes": max(layer["size"] for layer in layers),
