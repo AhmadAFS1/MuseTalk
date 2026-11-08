@@ -1,0 +1,1633 @@
+[box_job] [2026-11-04T03:36:48Z] start (pid 2533)
+[box_job] [2026-11-04T03:36:48Z] settings: sha=d8826442c5d1bd8772185a7fc564eddd98faf19f variant=bk_tiny max_minutes=150 steps=30000 reserve=60 review_avatars=en_01_maya_abe451d3_talking_f6cf8be7fb,en_03_marcus_19eb1ea8_talking_ada35a4a4d,es_01_valeria_aed74c50_talking_003d585d96,es_03_mateo_884600e1_talking_75d88cda6c,japanese_realtime_talking_7d94520b7f,latina_guided_20260925_talking_84c5bc80b8 facemesh=1 dry_run=0
+[box_job] [2026-11-04T03:36:48Z] STATUS running boot: waiting for the bootstrap to exit
+[box_job] [2026-11-04T03:39:06Z] bootstrap exited; its last line: [bootstrap] [2026-11-04T03:39:06Z] Complete (185s after checkout phase began)
+[box_job] [2026-11-04T03:39:06Z] STATUS running stop: the bootstrap's :8000 server
+[box_job] [2026-11-04T03:39:06Z] + env DRAIN_TIMEOUT_SECONDS=20 bash /workspace/MuseTalk/scripts/vast_server_ctl.sh stop 
+[vast_server_ctl.sh] Requested drain via http://127.0.0.1:8000/worker/drain
+[vast_server_ctl.sh] Drain complete
+[vast_server_ctl.sh] Stopping pid=9391
+[vast_server_ctl.sh] Server stopped
+[vast_server_ctl.sh] Stopping TURN server pid=9331
+[vast_server_ctl.sh] TURN server stopped
+[box_job] [2026-11-04T03:39:23Z] GPU after the stop: NVIDIA GeForce RTX 3090, 1 MiB, 24576 MiB
+[box_job] [2026-11-04T03:39:23Z] python: /workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/bin/python (overlay /workspace/distill/overlay)
+torch 2.5.1+cu121 NVIDIA GeForce RTX 3090
+[box_job] [2026-11-04T03:39:26Z] STATUS running clone: d8826442c5d1bd8772185a7fc564eddd98faf19f
+[box_job] [2026-11-04T03:39:26Z] + rm -rf /workspace/distill/MuseTalk.stage 
+[box_job] [2026-11-04T03:39:26Z] + git init -q /workspace/distill/MuseTalk.stage 
+[box_job] [2026-11-04T03:39:26Z] + git -C /workspace/distill/MuseTalk.stage remote add origin https://github.com/AhmadAFS1/MuseTalk.git 
+[box_job] [2026-11-04T03:39:26Z] + git -C /workspace/distill/MuseTalk.stage config core.sparseCheckout true 
+[box_job] [2026-11-04T03:39:26Z] + git -C /workspace/distill/MuseTalk.stage config core.sparseCheckoutCone false 
+[box_job] [2026-11-04T03:39:26Z] + sparse-checkout patterns: /* !/generated/ !/assets/ !/character_factory/ !/third_party_wheels/ !/uploads/ 
+[box_job] [2026-11-04T03:39:26Z] + git -C /workspace/distill/MuseTalk.stage -c core.hooksPath=/dev/null fetch --depth 1 --filter=blob:none origin d8826442c5d1bd8772185a7fc564eddd98faf19f 
+From https://github.com/AhmadAFS1/MuseTalk
+ * branch            d8826442c5d1bd8772185a7fc564eddd98faf19f -> FETCH_HEAD
+[box_job] [2026-11-04T03:39:28Z] + git -C /workspace/distill/MuseTalk.stage -c core.hooksPath=/dev/null checkout --detach d8826442c5d1bd8772185a7fc564eddd98faf19f 
+HEAD is now at d882644 Keep distillation run state in the writable ignored workspace
+[box_job] [2026-11-04T03:39:57Z] + mv -T /workspace/distill/MuseTalk.stage /workspace/distill/MuseTalk 
+[box_job] [2026-11-04T03:39:57Z] STATUS running deps
+[box_job] [2026-11-04T03:39:57Z] + mkdir -p /workspace/distill/overlay 
+[box_job] [2026-11-04T03:40:01Z] deps: both scripts and their lazy imports resolve
+diffusers 0.30.2 builds mid_block_type=None
+[box_job] [2026-11-04T03:40:05Z] STATUS running models
+[box_job] [2026-11-04T03:40:05Z] + mkdir -p /workspace/distill/MuseTalk/models /workspace/distill/models 
+[box_job] [2026-11-04T03:40:05Z] + ln -sfn /workspace/MuseTalk/models/musetalkV15 /workspace/distill/MuseTalk/models/musetalkV15 
+[box_job] [2026-11-04T03:40:05Z] + ln -sfn /workspace/MuseTalk/models/whisper /workspace/distill/MuseTalk/models/whisper 
+[box_job] [2026-11-04T03:40:05Z] + ln -sfn /workspace/MuseTalk/models/taesd /workspace/distill/MuseTalk/models/taesd 
+[box_job] [2026-11-04T03:40:05Z] + ln -sfn /workspace/MuseTalk/models/sd-vae /workspace/distill/MuseTalk/models/sd-vae 
+[box_job] [2026-11-04T03:40:05Z] STATUS running inputs
+[box_job] [2026-11-04T03:40:05Z] + mkdir -p /workspace/distill/MuseTalk/ios/MuseTalkBench/HarnessBundle 
+[box_job] [2026-11-04T03:40:05Z] + cp -f /workspace/distill/inputs/harness/unet_latents_f16.bin /workspace/distill/MuseTalk/ios/MuseTalkBench/HarnessBundle/unet_latents_f16.bin 
+[box_job] [2026-11-04T03:40:05Z] + cp -f /workspace/distill/inputs/harness/unet_audio_f16.bin /workspace/distill/MuseTalk/ios/MuseTalkBench/HarnessBundle/unet_audio_f16.bin 
+[box_job] [2026-11-04T03:40:05Z] + cp -f /workspace/distill/inputs/harness/unet_ref_f16.bin /workspace/distill/MuseTalk/ios/MuseTalkBench/HarnessBundle/unet_ref_f16.bin 
+[box_job] [2026-11-04T03:40:05Z] + cp -f /workspace/distill/inputs/harness/meta.json /workspace/distill/MuseTalk/ios/MuseTalkBench/HarnessBundle/meta.json 
+[box_job] [2026-11-04T03:40:05Z] downloads: 30 entries in the URL list
+[box_job] [2026-11-04T03:40:07Z] fetched bundles/en_02_claire_a833ee1f_talking_f6f244cc2a.json
+240 latent frames
+[box_job] [2026-11-04T03:40:11Z] fetched bundles/en_02_claire_a833ee1f_talking_f6f244cc2a.tar
+[box_job] [2026-11-04T03:40:13Z] fetched bundles/en_04_owen_4fd8c9da_talking_aa79df3324.json
+240 latent frames
+[box_job] [2026-11-04T03:40:20Z] fetched bundles/en_04_owen_4fd8c9da_talking_aa79df3324.tar
+[box_job] [2026-11-04T03:40:21Z] fetched bundles/es_02_lucia_e554c30b_talking_e5c5d0c534.json
+240 latent frames
+[box_job] [2026-11-04T03:40:29Z] fetched bundles/es_02_lucia_e554c30b_talking_e5c5d0c534.tar
+[box_job] [2026-11-04T03:40:31Z] fetched bundles/es_04_diego_532cfc1f_talking_035dba1e7a.json
+240 latent frames
+[box_job] [2026-11-04T03:40:38Z] fetched bundles/es_04_diego_532cfc1f_talking_035dba1e7a.tar
+[box_job] [2026-11-04T03:40:40Z] fetched bundles/ur_01_ayesha_1d9f8dcf_talking_7db7d95b4e.json
+240 latent frames
+[box_job] [2026-11-04T03:40:46Z] fetched bundles/ur_01_ayesha_1d9f8dcf_talking_7db7d95b4e.tar
+[box_job] [2026-11-04T03:40:48Z] fetched bundles/ur_02_zara_2fe6a913_talking_1e7fb98cf5.json
+240 latent frames
+[box_job] [2026-11-04T03:40:54Z] fetched bundles/ur_02_zara_2fe6a913_talking_1e7fb98cf5.tar
+[box_job] [2026-11-04T03:40:56Z] fetched bundles/ur_03_hamza_0c24ed7f_talking_bbadac99b6.json
+240 latent frames
+[box_job] [2026-11-04T03:41:01Z] fetched bundles/ur_03_hamza_0c24ed7f_talking_bbadac99b6.tar
+[box_job] [2026-11-04T03:41:02Z] fetched bundles/ur_04_bilal_b9b0df23_talking_42d5916a02.json
+240 latent frames
+[box_job] [2026-11-04T03:41:10Z] fetched bundles/ur_04_bilal_b9b0df23_talking_42d5916a02.tar
+[box_job] [2026-11-04T03:41:11Z] fetched bundles/zh_01_mei_ca138def_talking_c213293f1b.json
+240 latent frames
+[box_job] [2026-11-04T03:41:17Z] fetched bundles/zh_01_mei_ca138def_talking_c213293f1b.tar
+[box_job] [2026-11-04T03:41:18Z] fetched bundles/zh_02_lan_09242cdb_talking_3d84940bd7.json
+240 latent frames
+[box_job] [2026-11-04T03:41:25Z] fetched bundles/zh_02_lan_09242cdb_talking_3d84940bd7.tar
+[box_job] [2026-11-04T03:41:27Z] fetched bundles/zh_03_wei_44dc1943_talking_3cc9c11c9b.json
+240 latent frames
+[box_job] [2026-11-04T03:41:33Z] fetched bundles/zh_03_wei_44dc1943_talking_3cc9c11c9b.tar
+[box_job] [2026-11-04T03:41:35Z] fetched bundles/zh_04_jun_7e6a6f0b_talking_ccedca71ff.json
+240 latent frames
+[box_job] [2026-11-04T03:41:41Z] fetched bundles/zh_04_jun_7e6a6f0b_talking_ccedca71ff.tar
+968 entries
+[box_job] [2026-11-04T03:42:46Z] fetched avatars/en_01_maya_abe451d3_talking_f6cf8be7fb.tar.gz
+968 entries
+[box_job] [2026-11-04T03:43:50Z] fetched avatars/en_03_marcus_19eb1ea8_talking_ada35a4a4d.tar.gz
+968 entries
+[box_job] [2026-11-04T03:45:06Z] fetched avatars/es_01_valeria_aed74c50_talking_003d585d96.tar.gz
+968 entries
+[box_job] [2026-11-04T03:46:39Z] fetched avatars/es_03_mateo_884600e1_talking_75d88cda6c.tar.gz
+972 entries
+[box_job] [2026-11-04T03:47:17Z] fetched avatars/japanese_realtime_talking_7d94520b7f.tar.gz
+972 entries
+[box_job] [2026-11-04T03:47:51Z] fetched avatars/latina_guided_20260925_talking_84c5bc80b8.tar.gz
+[box_job] [2026-11-04T03:47:51Z] + rm -f /workspace/distill/inputs/urls.tsv 
+[box_job] [2026-11-04T03:47:51Z] inputs: 12 training latent files, 6 review avatars, 9 training clips, 2 review clips
+data split verified: 10 train, 2 validation; 14 gate + 6 review identities excluded
+[box_job] [2026-11-04T03:47:51Z] STATUS running facemesh: mediapipe 0.10.14 venv
+[box_job] [2026-11-04T03:47:51Z] + python3 -m venv /workspace/distill/venv-mp 
+[box_job] [2026-11-04T03:47:54Z] + /workspace/distill/venv-mp/bin/python -m pip install --disable-pip-version-check -q mediapipe==0.10.14 numpy==1.26.4 opencv-contrib-python==4.10.0.84 
+[box_job] [2026-11-04T03:50:33Z] + mkdir -p /workspace/distill/out/train 
+[box_job] [2026-11-04T03:50:33Z] STATUS running train: bk_tiny, up to 150 more min (150 in all)
+[box_job] [2026-11-04T03:50:37Z] + (cd /workspace/distill/MuseTalk && timeout -s INT -k 120 9120 /workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/bin/python scripts/ios/distill_small_unet.py --variant bk_tiny --latents /workspace/distill/inputs/bundles/\*/latents_f16.bin --audio /workspace/distill/inputs/audio/train/\* --steps 30000 --device cuda --out /workspace/distill/out/train --val-count 2 --expected-train-avatars 10 --expected-val-avatars 2 --gate-frames 128 --batch 8 --grad-ckpt --eval-every 250 --ckpt-minutes 5 --max-minutes 150 ) | tee -a /workspace/distill/out/train/train.log
+12 avatars, 2880 frames; val: es_04_diego_532cfc1f_talking_035dba1e7a, zh_02_lan_09242cdb_talking_3d84940bd7
+  audio 2nd_message.mpga: 239 windows
+  audio 3rd_message.mpga: 161 windows
+  audio 4th_message_long.mpga: 618 windows
+  audio ai-test-avatar.mpga: 417 windows
+  audio outputnew2.wav: 658 windows
+  audio response-2.mpga: 118 windows
+  audio response-6-long.mpga: 283 windows
+  audio sun.wav: 562 windows
+  audio yongen.wav: 200 windows
+9 clips, 3256 audio windows
+bk_tiny: 318M parameters (358 of 358 tensors from the full model)
+teacher (torch.float16) on the gate: mae 0.00028, max_abs 0.0630
+eval 0: val mae 0.30700 (blend 0.34996) | gate mae 0.30561 worst 0.33958 blend 0.34992 max_abs 6.7417 | best
+step 25: loss 4.74078 (out 0.18516, feat 4.55562), lr 5.20e-06, 0.31 s/step, 0.2 min
+step 50: loss 3.87294 (out 0.16369, feat 3.70925), lr 1.02e-05, 0.23 s/step, 0.3 min
+step 75: loss 3.27092 (out 0.14185, feat 3.12907), lr 1.52e-05, 0.22 s/step, 0.4 min
+step 100: loss 2.85267 (out 0.12359, feat 2.72908), lr 2.02e-05, 0.22 s/step, 0.5 min
+step 125: loss 2.53713 (out 0.10888, feat 2.42825), lr 2.52e-05, 0.22 s/step, 0.6 min
+step 150: loss 2.30105 (out 0.09769, feat 2.20337), lr 3.02e-05, 0.24 s/step, 0.7 min
+step 175: loss 2.11536 (out 0.08896, feat 2.02640), lr 3.52e-05, 0.23 s/step, 0.8 min
+step 200: loss 1.96840 (out 0.08196, feat 1.88644), lr 4.02e-05, 0.22 s/step, 0.9 min
+step 225: loss 1.84599 (out 0.07618, feat 1.76981), lr 4.52e-05, 0.22 s/step, 1.0 min
+step 250: loss 1.74178 (out 0.07139, feat 1.67039), lr 5.02e-05, 0.22 s/step, 1.1 min
+eval 250: val mae 0.12081 (blend 0.17913) | gate mae 0.13086 worst 0.16760 blend 0.19549 max_abs 5.3213 | best
+step 275: loss 0.74475 (out 0.02597, feat 0.71878), lr 5.52e-05, 0.22 s/step, 1.2 min
+step 300: loss 0.74155 (out 0.02630, feat 0.71525), lr 6.02e-05, 0.23 s/step, 1.3 min
+step 325: loss 0.73004 (out 0.02617, feat 0.70387), lr 6.52e-05, 0.22 s/step, 1.4 min
+step 350: loss 0.71501 (out 0.02567, feat 0.68934), lr 7.02e-05, 0.22 s/step, 1.5 min
+step 375: loss 0.70394 (out 0.02536, feat 0.67859), lr 7.52e-05, 0.22 s/step, 1.6 min
+step 400: loss 0.69463 (out 0.02509, feat 0.66954), lr 8.02e-05, 0.22 s/step, 1.7 min
+step 425: loss 0.68682 (out 0.02475, feat 0.66207), lr 8.52e-05, 0.22 s/step, 1.8 min
+step 450: loss 0.67985 (out 0.02452, feat 0.65533), lr 9.02e-05, 0.22 s/step, 1.9 min
+step 475: loss 0.67337 (out 0.02412, feat 0.64925), lr 9.51e-05, 0.22 s/step, 2.0 min
+step 500: loss 0.66900 (out 0.02394, feat 0.64506), lr 9.99e-05, 0.22 s/step, 2.0 min
+eval 500: val mae 0.11090 (blend 0.16493) | gate mae 0.12308 worst 0.17043 blend 0.18473 max_abs 5.3556 | best
+step 525: loss 0.61680 (out 0.02119, feat 0.59560), lr 9.99e-05, 0.22 s/step, 2.2 min
+step 550: loss 0.60882 (out 0.02128, feat 0.58753), lr 9.99e-05, 0.22 s/step, 2.3 min
+step 575: loss 0.60163 (out 0.02110, feat 0.58053), lr 9.99e-05, 0.22 s/step, 2.4 min
+step 600: loss 0.59166 (out 0.02108, feat 0.57058), lr 9.99e-05, 0.22 s/step, 2.5 min
+step 625: loss 0.58870 (out 0.02089, feat 0.56781), lr 9.99e-05, 0.22 s/step, 2.6 min
+step 650: loss 0.58369 (out 0.02070, feat 0.56299), lr 9.99e-05, 0.22 s/step, 2.7 min
+step 675: loss 0.57898 (out 0.02063, feat 0.55835), lr 9.99e-05, 0.22 s/step, 2.8 min
+step 700: loss 0.57331 (out 0.02016, feat 0.55315), lr 9.99e-05, 0.22 s/step, 2.8 min
+step 725: loss 0.56926 (out 0.01993, feat 0.54933), lr 9.99e-05, 0.22 s/step, 2.9 min
+step 750: loss 0.56507 (out 0.01995, feat 0.54513), lr 9.99e-05, 0.22 s/step, 3.0 min
+eval 750: val mae 0.11113 (blend 0.16712) | gate mae 0.12230 worst 0.16837 blend 0.18409 max_abs 5.4804
+step 775: loss 0.52714 (out 0.01883, feat 0.50831), lr 9.99e-05, 0.22 s/step, 3.2 min
+step 800: loss 0.50905 (out 0.01857, feat 0.49048), lr 9.98e-05, 0.22 s/step, 3.2 min
+step 825: loss 0.50299 (out 0.01812, feat 0.48487), lr 9.98e-05, 0.22 s/step, 3.3 min
+step 850: loss 0.50143 (out 0.01801, feat 0.48341), lr 9.98e-05, 0.22 s/step, 3.4 min
+step 875: loss 0.50078 (out 0.01789, feat 0.48289), lr 9.98e-05, 0.22 s/step, 3.5 min
+step 900: loss 0.49899 (out 0.01783, feat 0.48116), lr 9.98e-05, 0.22 s/step, 3.6 min
+step 925: loss 0.49731 (out 0.01778, feat 0.47953), lr 9.98e-05, 0.22 s/step, 3.7 min
+step 950: loss 0.49416 (out 0.01771, feat 0.47645), lr 9.98e-05, 0.22 s/step, 3.8 min
+step 975: loss 0.49100 (out 0.01750, feat 0.47350), lr 9.98e-05, 0.22 s/step, 3.9 min
+step 1000: loss 0.48706 (out 0.01726, feat 0.46980), lr 9.98e-05, 0.22 s/step, 4.0 min
+eval 1000: val mae 0.10158 (blend 0.15352) | gate mae 0.11561 worst 0.15646 blend 0.17715 max_abs 5.3985 | best
+step 1025: loss 0.45267 (out 0.01556, feat 0.43712), lr 9.97e-05, 0.22 s/step, 4.1 min
+step 1050: loss 0.45193 (out 0.01554, feat 0.43639), lr 9.97e-05, 0.23 s/step, 4.2 min
+step 1075: loss 0.44682 (out 0.01553, feat 0.43129), lr 9.97e-05, 0.22 s/step, 4.3 min
+step 1100: loss 0.44781 (out 0.01557, feat 0.43225), lr 9.97e-05, 0.22 s/step, 4.4 min
+step 1125: loss 0.44974 (out 0.01565, feat 0.43409), lr 9.97e-05, 0.22 s/step, 4.5 min
+step 1150: loss 0.44834 (out 0.01544, feat 0.43289), lr 9.97e-05, 0.22 s/step, 4.6 min
+step 1175: loss 0.44465 (out 0.01536, feat 0.42929), lr 9.97e-05, 0.22 s/step, 4.7 min
+step 1200: loss 0.44351 (out 0.01529, feat 0.42821), lr 9.96e-05, 0.22 s/step, 4.8 min
+step 1225: loss 0.44156 (out 0.01513, feat 0.42642), lr 9.96e-05, 0.22 s/step, 4.9 min
+step 1250: loss 0.43994 (out 0.01508, feat 0.42485), lr 9.96e-05, 0.22 s/step, 5.0 min
+eval 1250: val mae 0.09945 (blend 0.14946) | gate mae 0.11645 worst 0.15553 blend 0.17664 max_abs 5.4108 | best
+step 1275: loss 0.42472 (out 0.01437, feat 0.41035), lr 9.96e-05, 0.39 s/step, 5.2 min
+step 1300: loss 0.42553 (out 0.01473, feat 0.41079), lr 9.96e-05, 0.22 s/step, 5.3 min
+step 1325: loss 0.42508 (out 0.01448, feat 0.41059), lr 9.96e-05, 0.22 s/step, 5.4 min
+step 1350: loss 0.42622 (out 0.01444, feat 0.41178), lr 9.96e-05, 0.22 s/step, 5.5 min
+step 1375: loss 0.42382 (out 0.01426, feat 0.40957), lr 9.95e-05, 0.22 s/step, 5.6 min
+step 1400: loss 0.42313 (out 0.01438, feat 0.40875), lr 9.95e-05, 0.22 s/step, 5.6 min
+step 1425: loss 0.42180 (out 0.01436, feat 0.40744), lr 9.95e-05, 0.22 s/step, 5.7 min
+step 1450: loss 0.41786 (out 0.01420, feat 0.40365), lr 9.95e-05, 0.22 s/step, 5.8 min
+step 1475: loss 0.41670 (out 0.01416, feat 0.40254), lr 9.95e-05, 0.22 s/step, 5.9 min
+step 1500: loss 0.41605 (out 0.01409, feat 0.40195), lr 9.94e-05, 0.22 s/step, 6.0 min
+eval 1500: val mae 0.10683 (blend 0.16313) | gate mae 0.11784 worst 0.17905 blend 0.18003 max_abs 5.2829
+step 1525: loss 0.40237 (out 0.01443, feat 0.38794), lr 9.94e-05, 0.22 s/step, 6.1 min
+step 1550: loss 0.39710 (out 0.01385, feat 0.38325), lr 9.94e-05, 0.22 s/step, 6.2 min
+step 1575: loss 0.39318 (out 0.01370, feat 0.37948), lr 9.94e-05, 0.22 s/step, 6.3 min
+step 1600: loss 0.39123 (out 0.01352, feat 0.37770), lr 9.94e-05, 0.22 s/step, 6.4 min
+step 1625: loss 0.39119 (out 0.01343, feat 0.37777), lr 9.94e-05, 0.22 s/step, 6.5 min
+step 1650: loss 0.39062 (out 0.01342, feat 0.37720), lr 9.93e-05, 0.22 s/step, 6.6 min
+step 1675: loss 0.38760 (out 0.01339, feat 0.37421), lr 9.93e-05, 0.22 s/step, 6.7 min
+step 1700: loss 0.38786 (out 0.01331, feat 0.37455), lr 9.93e-05, 0.22 s/step, 6.8 min
+step 1725: loss 0.38916 (out 0.01332, feat 0.37583), lr 9.93e-05, 0.22 s/step, 6.9 min
+step 1750: loss 0.39025 (out 0.01336, feat 0.37689), lr 9.92e-05, 0.22 s/step, 7.0 min
+eval 1750: val mae 0.09663 (blend 0.14713) | gate mae 0.10947 worst 0.14374 blend 0.16821 max_abs 5.3564 | best
+step 1775: loss 0.39894 (out 0.01371, feat 0.38523), lr 9.92e-05, 0.22 s/step, 7.1 min
+step 1800: loss 0.39558 (out 0.01318, feat 0.38240), lr 9.92e-05, 0.22 s/step, 7.2 min
+step 1825: loss 0.38856 (out 0.01333, feat 0.37523), lr 9.92e-05, 0.22 s/step, 7.3 min
+step 1850: loss 0.38330 (out 0.01313, feat 0.37016), lr 9.92e-05, 0.22 s/step, 7.4 min
+step 1875: loss 0.38188 (out 0.01316, feat 0.36872), lr 9.91e-05, 0.22 s/step, 7.5 min
+step 1900: loss 0.38043 (out 0.01319, feat 0.36723), lr 9.91e-05, 0.22 s/step, 7.6 min
+step 1925: loss 0.38036 (out 0.01314, feat 0.36721), lr 9.91e-05, 0.22 s/step, 7.7 min
+step 1950: loss 0.37924 (out 0.01309, feat 0.36614), lr 9.91e-05, 0.22 s/step, 7.8 min
+step 1975: loss 0.37740 (out 0.01311, feat 0.36429), lr 9.90e-05, 0.22 s/step, 7.8 min
+step 2000: loss 0.37567 (out 0.01304, feat 0.36263), lr 9.90e-05, 0.22 s/step, 7.9 min
+eval 2000: val mae 0.09726 (blend 0.14802) | gate mae 0.11026 worst 0.15203 blend 0.16900 max_abs 5.2235
+step 2025: loss 0.37266 (out 0.01268, feat 0.35997), lr 9.90e-05, 0.22 s/step, 8.1 min
+step 2050: loss 0.37748 (out 0.01267, feat 0.36481), lr 9.90e-05, 0.21 s/step, 8.2 min
+step 2075: loss 0.37603 (out 0.01266, feat 0.36336), lr 9.89e-05, 0.21 s/step, 8.2 min
+step 2100: loss 0.37284 (out 0.01253, feat 0.36031), lr 9.89e-05, 0.22 s/step, 8.3 min
+step 2125: loss 0.36979 (out 0.01251, feat 0.35728), lr 9.89e-05, 0.21 s/step, 8.4 min
+step 2150: loss 0.36879 (out 0.01247, feat 0.35632), lr 9.89e-05, 0.21 s/step, 8.5 min
+step 2175: loss 0.36612 (out 0.01236, feat 0.35376), lr 9.88e-05, 0.21 s/step, 8.6 min
+step 2200: loss 0.36443 (out 0.01232, feat 0.35212), lr 9.88e-05, 0.22 s/step, 8.7 min
+step 2225: loss 0.36375 (out 0.01233, feat 0.35142), lr 9.88e-05, 0.21 s/step, 8.8 min
+step 2250: loss 0.36376 (out 0.01237, feat 0.35139), lr 9.88e-05, 0.21 s/step, 8.9 min
+eval 2250: val mae 0.09916 (blend 0.15144) | gate mae 0.11178 worst 0.15246 blend 0.17133 max_abs 5.1897
+step 2275: loss 0.36621 (out 0.01306, feat 0.35316), lr 9.87e-05, 0.22 s/step, 9.0 min
+step 2300: loss 0.35976 (out 0.01249, feat 0.34727), lr 9.87e-05, 0.21 s/step, 9.1 min
+step 2325: loss 0.35737 (out 0.01224, feat 0.34513), lr 9.87e-05, 0.21 s/step, 9.2 min
+step 2350: loss 0.36020 (out 0.01214, feat 0.34806), lr 9.86e-05, 0.21 s/step, 9.3 min
+step 2375: loss 0.35835 (out 0.01206, feat 0.34629), lr 9.86e-05, 0.22 s/step, 9.4 min
+step 2400: loss 0.35721 (out 0.01203, feat 0.34518), lr 9.86e-05, 0.22 s/step, 9.4 min
+step 2425: loss 0.35545 (out 0.01206, feat 0.34338), lr 9.86e-05, 0.21 s/step, 9.5 min
+step 2450: loss 0.35438 (out 0.01210, feat 0.34228), lr 9.85e-05, 0.22 s/step, 9.6 min
+step 2475: loss 0.35374 (out 0.01211, feat 0.34162), lr 9.85e-05, 0.21 s/step, 9.7 min
+step 2500: loss 0.35286 (out 0.01206, feat 0.34080), lr 9.85e-05, 0.21 s/step, 9.8 min
+eval 2500: val mae 0.09583 (blend 0.14639) | gate mae 0.11063 worst 0.15581 blend 0.17081 max_abs 5.2291 | best
+step 2525: loss 0.34618 (out 0.01247, feat 0.33371), lr 9.84e-05, 0.23 s/step, 10.0 min
+step 2550: loss 0.34646 (out 0.01205, feat 0.33441), lr 9.84e-05, 0.21 s/step, 10.0 min
+step 2575: loss 0.34493 (out 0.01204, feat 0.33289), lr 9.84e-05, 0.21 s/step, 10.1 min
+step 2600: loss 0.34525 (out 0.01209, feat 0.33316), lr 9.83e-05, 0.38 s/step, 10.3 min
+step 2625: loss 0.34550 (out 0.01208, feat 0.33343), lr 9.83e-05, 0.22 s/step, 10.4 min
+step 2650: loss 0.34429 (out 0.01197, feat 0.33232), lr 9.83e-05, 0.22 s/step, 10.5 min
+step 2675: loss 0.34401 (out 0.01197, feat 0.33205), lr 9.82e-05, 0.21 s/step, 10.6 min
+step 2700: loss 0.34395 (out 0.01196, feat 0.33200), lr 9.82e-05, 0.22 s/step, 10.6 min
+step 2725: loss 0.34346 (out 0.01194, feat 0.33153), lr 9.82e-05, 0.21 s/step, 10.7 min
+step 2750: loss 0.34257 (out 0.01185, feat 0.33072), lr 9.81e-05, 0.21 s/step, 10.8 min
+eval 2750: val mae 0.09558 (blend 0.14592) | gate mae 0.11044 worst 0.15014 blend 0.16930 max_abs 5.2390 | best
+step 2775: loss 0.34931 (out 0.01271, feat 0.33660), lr 9.81e-05, 0.21 s/step, 11.0 min
+step 2800: loss 0.34457 (out 0.01199, feat 0.33258), lr 9.81e-05, 0.22 s/step, 11.1 min
+step 2825: loss 0.34455 (out 0.01198, feat 0.33257), lr 9.80e-05, 0.21 s/step, 11.2 min
+step 2850: loss 0.34192 (out 0.01186, feat 0.33006), lr 9.80e-05, 0.22 s/step, 11.2 min
+step 2875: loss 0.33964 (out 0.01175, feat 0.32789), lr 9.80e-05, 0.22 s/step, 11.3 min
+step 2900: loss 0.33849 (out 0.01164, feat 0.32685), lr 9.79e-05, 0.21 s/step, 11.4 min
+step 2925: loss 0.33650 (out 0.01147, feat 0.32503), lr 9.79e-05, 0.21 s/step, 11.5 min
+step 2950: loss 0.33530 (out 0.01143, feat 0.32386), lr 9.79e-05, 0.22 s/step, 11.6 min
+step 2975: loss 0.33572 (out 0.01148, feat 0.32424), lr 9.78e-05, 0.21 s/step, 11.7 min
+step 3000: loss 0.33502 (out 0.01147, feat 0.32355), lr 9.78e-05, 0.21 s/step, 11.8 min
+eval 3000: val mae 0.09772 (blend 0.14973) | gate mae 0.11313 worst 0.15675 blend 0.17515 max_abs 5.1584
+step 3025: loss 0.33068 (out 0.01206, feat 0.31863), lr 9.78e-05, 0.21 s/step, 11.9 min
+step 3050: loss 0.33678 (out 0.01232, feat 0.32446), lr 9.77e-05, 0.22 s/step, 12.0 min
+step 3075: loss 0.33498 (out 0.01194, feat 0.32304), lr 9.77e-05, 0.21 s/step, 12.1 min
+step 3100: loss 0.33347 (out 0.01155, feat 0.32192), lr 9.76e-05, 0.21 s/step, 12.2 min
+step 3125: loss 0.33350 (out 0.01136, feat 0.32214), lr 9.76e-05, 0.22 s/step, 12.3 min
+step 3150: loss 0.33469 (out 0.01128, feat 0.32341), lr 9.76e-05, 0.21 s/step, 12.4 min
+step 3175: loss 0.33358 (out 0.01132, feat 0.32225), lr 9.75e-05, 0.21 s/step, 12.4 min
+step 3200: loss 0.33317 (out 0.01131, feat 0.32185), lr 9.75e-05, 0.21 s/step, 12.5 min
+step 3225: loss 0.33185 (out 0.01133, feat 0.32052), lr 9.75e-05, 0.22 s/step, 12.6 min
+step 3250: loss 0.33064 (out 0.01124, feat 0.31940), lr 9.74e-05, 0.21 s/step, 12.7 min
+eval 3250: val mae 0.09108 (blend 0.13887) | gate mae 0.11072 worst 0.15579 blend 0.17058 max_abs 5.1460 | best
+step 3275: loss 0.33658 (out 0.01155, feat 0.32502), lr 9.74e-05, 0.21 s/step, 12.9 min
+step 3300: loss 0.33244 (out 0.01119, feat 0.32125), lr 9.73e-05, 0.22 s/step, 13.0 min
+step 3325: loss 0.32949 (out 0.01100, feat 0.31849), lr 9.73e-05, 0.21 s/step, 13.0 min
+step 3350: loss 0.32600 (out 0.01106, feat 0.31494), lr 9.73e-05, 0.21 s/step, 13.1 min
+step 3375: loss 0.32434 (out 0.01102, feat 0.31332), lr 9.72e-05, 0.21 s/step, 13.2 min
+step 3400: loss 0.32205 (out 0.01095, feat 0.31110), lr 9.72e-05, 0.22 s/step, 13.3 min
+step 3425: loss 0.32151 (out 0.01092, feat 0.31058), lr 9.71e-05, 0.21 s/step, 13.4 min
+step 3450: loss 0.32165 (out 0.01100, feat 0.31065), lr 9.71e-05, 0.21 s/step, 13.5 min
+step 3475: loss 0.32112 (out 0.01098, feat 0.31014), lr 9.71e-05, 0.22 s/step, 13.6 min
+step 3500: loss 0.32068 (out 0.01091, feat 0.30977), lr 9.70e-05, 0.21 s/step, 13.7 min
+eval 3500: val mae 0.09351 (blend 0.14268) | gate mae 0.10772 worst 0.15633 blend 0.16517 max_abs 5.1461
+step 3525: loss 0.31903 (out 0.01056, feat 0.30847), lr 9.70e-05, 0.21 s/step, 13.8 min
+step 3550: loss 0.31977 (out 0.01038, feat 0.30939), lr 9.69e-05, 0.22 s/step, 13.9 min
+step 3575: loss 0.31766 (out 0.01037, feat 0.30729), lr 9.69e-05, 0.21 s/step, 14.0 min
+step 3600: loss 0.31668 (out 0.01031, feat 0.30638), lr 9.68e-05, 0.21 s/step, 14.1 min
+step 3625: loss 0.31741 (out 0.01032, feat 0.30709), lr 9.68e-05, 0.21 s/step, 14.1 min
+step 3650: loss 0.31859 (out 0.01039, feat 0.30820), lr 9.68e-05, 0.22 s/step, 14.2 min
+step 3675: loss 0.31887 (out 0.01048, feat 0.30839), lr 9.67e-05, 0.21 s/step, 14.3 min
+step 3700: loss 0.31882 (out 0.01047, feat 0.30835), lr 9.67e-05, 0.21 s/step, 14.4 min
+step 3725: loss 0.31780 (out 0.01047, feat 0.30733), lr 9.66e-05, 0.22 s/step, 14.5 min
+step 3750: loss 0.31731 (out 0.01050, feat 0.30680), lr 9.66e-05, 0.21 s/step, 14.6 min
+eval 3750: val mae 0.09625 (blend 0.14834) | gate mae 0.11035 worst 0.14813 blend 0.17075 max_abs 5.1758
+step 3775: loss 0.30425 (out 0.01060, feat 0.29365), lr 9.65e-05, 0.21 s/step, 14.7 min
+step 3800: loss 0.31423 (out 0.01081, feat 0.30342), lr 9.65e-05, 0.21 s/step, 14.8 min
+step 3825: loss 0.31505 (out 0.01082, feat 0.30423), lr 9.64e-05, 0.22 s/step, 14.9 min
+step 3850: loss 0.31631 (out 0.01078, feat 0.30553), lr 9.64e-05, 0.21 s/step, 15.0 min
+step 3875: loss 0.31557 (out 0.01068, feat 0.30489), lr 9.63e-05, 0.22 s/step, 15.1 min
+step 3900: loss 0.31465 (out 0.01067, feat 0.30397), lr 9.63e-05, 0.22 s/step, 15.2 min
+step 3925: loss 0.31248 (out 0.01067, feat 0.30181), lr 9.63e-05, 0.38 s/step, 15.3 min
+step 3950: loss 0.31258 (out 0.01064, feat 0.30194), lr 9.62e-05, 0.21 s/step, 15.4 min
+step 3975: loss 0.31123 (out 0.01054, feat 0.30069), lr 9.62e-05, 0.22 s/step, 15.5 min
+step 4000: loss 0.31077 (out 0.01050, feat 0.30027), lr 9.61e-05, 0.22 s/step, 15.6 min
+eval 4000: val mae 0.09470 (blend 0.14480) | gate mae 0.11446 worst 0.15435 blend 0.17595 max_abs 5.2596
+step 4025: loss 0.30698 (out 0.01093, feat 0.29605), lr 9.61e-05, 0.21 s/step, 15.7 min
+step 4050: loss 0.30863 (out 0.01057, feat 0.29806), lr 9.60e-05, 0.22 s/step, 15.8 min
+step 4075: loss 0.31304 (out 0.01090, feat 0.30214), lr 9.60e-05, 0.22 s/step, 15.9 min
+step 4100: loss 0.31209 (out 0.01093, feat 0.30116), lr 9.59e-05, 0.22 s/step, 16.0 min
+step 4125: loss 0.31084 (out 0.01078, feat 0.30006), lr 9.59e-05, 0.22 s/step, 16.1 min
+step 4150: loss 0.31123 (out 0.01073, feat 0.30050), lr 9.58e-05, 0.22 s/step, 16.2 min
+step 4175: loss 0.30923 (out 0.01062, feat 0.29861), lr 9.58e-05, 0.22 s/step, 16.3 min
+step 4200: loss 0.30842 (out 0.01056, feat 0.29786), lr 9.57e-05, 0.22 s/step, 16.4 min
+step 4225: loss 0.30765 (out 0.01047, feat 0.29718), lr 9.57e-05, 0.22 s/step, 16.5 min
+step 4250: loss 0.30646 (out 0.01041, feat 0.29605), lr 9.56e-05, 0.22 s/step, 16.5 min
+eval 4250: val mae 0.09230 (blend 0.14093) | gate mae 0.11265 worst 0.15622 blend 0.17323 max_abs 5.2088
+step 4275: loss 0.30147 (out 0.01064, feat 0.29083), lr 9.56e-05, 0.22 s/step, 16.7 min
+step 4300: loss 0.30206 (out 0.01027, feat 0.29179), lr 9.55e-05, 0.22 s/step, 16.8 min
+step 4325: loss 0.30141 (out 0.01015, feat 0.29126), lr 9.55e-05, 0.22 s/step, 16.9 min
+step 4350: loss 0.30103 (out 0.00997, feat 0.29106), lr 9.54e-05, 0.22 s/step, 16.9 min
+step 4375: loss 0.30012 (out 0.00999, feat 0.29013), lr 9.54e-05, 0.22 s/step, 17.0 min
+step 4400: loss 0.29980 (out 0.01005, feat 0.28975), lr 9.53e-05, 0.22 s/step, 17.1 min
+step 4425: loss 0.30023 (out 0.01021, feat 0.29003), lr 9.53e-05, 0.22 s/step, 17.2 min
+step 4450: loss 0.30043 (out 0.01025, feat 0.29018), lr 9.52e-05, 0.22 s/step, 17.3 min
+step 4475: loss 0.29993 (out 0.01025, feat 0.28969), lr 9.51e-05, 0.22 s/step, 17.4 min
+step 4500: loss 0.30013 (out 0.01020, feat 0.28994), lr 9.51e-05, 0.22 s/step, 17.5 min
+eval 4500: val mae 0.09222 (blend 0.14003) | gate mae 0.11078 worst 0.14102 blend 0.16951 max_abs 5.1999
+step 4525: loss 0.30863 (out 0.00980, feat 0.29883), lr 9.50e-05, 0.22 s/step, 17.6 min
+step 4550: loss 0.30382 (out 0.00980, feat 0.29402), lr 9.50e-05, 0.22 s/step, 17.7 min
+step 4575: loss 0.30372 (out 0.01006, feat 0.29367), lr 9.49e-05, 0.22 s/step, 17.8 min
+step 4600: loss 0.30129 (out 0.00999, feat 0.29130), lr 9.49e-05, 0.22 s/step, 17.9 min
+step 4625: loss 0.30030 (out 0.00999, feat 0.29031), lr 9.48e-05, 0.22 s/step, 18.0 min
+step 4650: loss 0.29979 (out 0.01002, feat 0.28977), lr 9.48e-05, 0.22 s/step, 18.1 min
+step 4675: loss 0.29917 (out 0.01000, feat 0.28917), lr 9.47e-05, 0.23 s/step, 18.2 min
+step 4700: loss 0.29858 (out 0.01000, feat 0.28858), lr 9.47e-05, 0.22 s/step, 18.3 min
+step 4725: loss 0.29808 (out 0.00997, feat 0.28810), lr 9.46e-05, 0.22 s/step, 18.4 min
+step 4750: loss 0.29708 (out 0.00996, feat 0.28711), lr 9.45e-05, 0.22 s/step, 18.4 min
+eval 4750: val mae 0.08954 (blend 0.13684) | gate mae 0.10798 worst 0.15054 blend 0.16645 max_abs 5.4099 | best
+step 4775: loss 0.29779 (out 0.01001, feat 0.28779), lr 9.45e-05, 0.22 s/step, 18.6 min
+step 4800: loss 0.29698 (out 0.00968, feat 0.28730), lr 9.44e-05, 0.22 s/step, 18.7 min
+step 4825: loss 0.29566 (out 0.00970, feat 0.28596), lr 9.44e-05, 0.22 s/step, 18.8 min
+step 4850: loss 0.29823 (out 0.00985, feat 0.28838), lr 9.43e-05, 0.22 s/step, 18.9 min
+step 4875: loss 0.29704 (out 0.00981, feat 0.28724), lr 9.43e-05, 0.22 s/step, 19.0 min
+step 4900: loss 0.29569 (out 0.00978, feat 0.28591), lr 9.42e-05, 0.22 s/step, 19.1 min
+step 4925: loss 0.29450 (out 0.00980, feat 0.28470), lr 9.41e-05, 0.23 s/step, 19.2 min
+step 4950: loss 0.29415 (out 0.00979, feat 0.28436), lr 9.41e-05, 0.22 s/step, 19.2 min
+step 4975: loss 0.29285 (out 0.00978, feat 0.28307), lr 9.40e-05, 0.22 s/step, 19.3 min
+step 5000: loss 0.29253 (out 0.00981, feat 0.28272), lr 9.40e-05, 0.22 s/step, 19.4 min
+eval 5000: val mae 0.09213 (blend 0.14059) | gate mae 0.10706 worst 0.14621 blend 0.16405 max_abs 5.2743
+step 5025: loss 0.29309 (out 0.00960, feat 0.28349), lr 9.39e-05, 0.22 s/step, 19.6 min
+step 5050: loss 0.29180 (out 0.00979, feat 0.28201), lr 9.39e-05, 0.22 s/step, 19.6 min
+step 5075: loss 0.28988 (out 0.01003, feat 0.27985), lr 9.38e-05, 0.22 s/step, 19.7 min
+step 5100: loss 0.28888 (out 0.00998, feat 0.27890), lr 9.37e-05, 0.22 s/step, 19.8 min
+step 5125: loss 0.28798 (out 0.00988, feat 0.27810), lr 9.37e-05, 0.22 s/step, 19.9 min
+step 5150: loss 0.28896 (out 0.00998, feat 0.27898), lr 9.36e-05, 0.22 s/step, 20.0 min
+step 5175: loss 0.28879 (out 0.00992, feat 0.27887), lr 9.36e-05, 0.22 s/step, 20.1 min
+step 5200: loss 0.28792 (out 0.00992, feat 0.27800), lr 9.35e-05, 0.22 s/step, 20.2 min
+step 5225: loss 0.28679 (out 0.00986, feat 0.27693), lr 9.34e-05, 0.22 s/step, 20.3 min
+step 5250: loss 0.28604 (out 0.00985, feat 0.27619), lr 9.34e-05, 0.38 s/step, 20.4 min
+eval 5250: val mae 0.08943 (blend 0.13544) | gate mae 0.10811 worst 0.14983 blend 0.16473 max_abs 5.1178 | best
+step 5275: loss 0.28258 (out 0.00976, feat 0.27282), lr 9.33e-05, 0.22 s/step, 20.6 min
+step 5300: loss 0.28697 (out 0.00953, feat 0.27744), lr 9.32e-05, 0.22 s/step, 20.7 min
+step 5325: loss 0.28681 (out 0.00929, feat 0.27752), lr 9.32e-05, 0.22 s/step, 20.8 min
+step 5350: loss 0.28686 (out 0.00940, feat 0.27746), lr 9.31e-05, 0.22 s/step, 20.9 min
+step 5375: loss 0.28796 (out 0.00950, feat 0.27846), lr 9.31e-05, 0.22 s/step, 21.0 min
+step 5400: loss 0.28805 (out 0.00958, feat 0.27847), lr 9.30e-05, 0.22 s/step, 21.1 min
+step 5425: loss 0.28709 (out 0.00956, feat 0.27753), lr 9.29e-05, 0.22 s/step, 21.1 min
+step 5450: loss 0.28737 (out 0.00949, feat 0.27787), lr 9.29e-05, 0.22 s/step, 21.2 min
+step 5475: loss 0.28768 (out 0.00946, feat 0.27821), lr 9.28e-05, 0.22 s/step, 21.3 min
+step 5500: loss 0.28674 (out 0.00942, feat 0.27731), lr 9.27e-05, 0.22 s/step, 21.4 min
+eval 5500: val mae 0.09351 (blend 0.14270) | gate mae 0.10923 worst 0.15453 blend 0.16721 max_abs 5.0593
+step 5525: loss 0.27881 (out 0.00969, feat 0.26912), lr 9.27e-05, 0.22 s/step, 21.6 min
+step 5550: loss 0.28106 (out 0.00947, feat 0.27159), lr 9.26e-05, 0.22 s/step, 21.6 min
+step 5575: loss 0.28162 (out 0.00960, feat 0.27202), lr 9.25e-05, 0.22 s/step, 21.7 min
+step 5600: loss 0.28229 (out 0.00969, feat 0.27261), lr 9.25e-05, 0.22 s/step, 21.8 min
+step 5625: loss 0.28032 (out 0.00954, feat 0.27077), lr 9.24e-05, 0.22 s/step, 21.9 min
+step 5650: loss 0.28031 (out 0.00949, feat 0.27083), lr 9.24e-05, 0.22 s/step, 22.0 min
+step 5675: loss 0.28084 (out 0.00951, feat 0.27133), lr 9.23e-05, 0.22 s/step, 22.1 min
+step 5700: loss 0.28070 (out 0.00951, feat 0.27119), lr 9.22e-05, 0.22 s/step, 22.2 min
+step 5725: loss 0.28017 (out 0.00950, feat 0.27067), lr 9.22e-05, 0.22 s/step, 22.3 min
+step 5750: loss 0.28042 (out 0.00955, feat 0.27087), lr 9.21e-05, 0.22 s/step, 22.4 min
+eval 5750: val mae 0.09394 (blend 0.14393) | gate mae 0.11070 worst 0.14736 blend 0.17093 max_abs 4.8388
+step 5775: loss 0.28068 (out 0.00923, feat 0.27145), lr 9.20e-05, 0.22 s/step, 22.5 min
+step 5800: loss 0.28210 (out 0.00960, feat 0.27250), lr 9.20e-05, 0.22 s/step, 22.6 min
+step 5825: loss 0.28861 (out 0.01012, feat 0.27849), lr 9.19e-05, 0.22 s/step, 22.7 min
+step 5850: loss 0.28910 (out 0.01026, feat 0.27884), lr 9.18e-05, 0.22 s/step, 22.8 min
+step 5875: loss 0.28789 (out 0.01011, feat 0.27777), lr 9.17e-05, 0.22 s/step, 22.9 min
+step 5900: loss 0.28554 (out 0.00998, feat 0.27556), lr 9.17e-05, 0.22 s/step, 23.0 min
+step 5925: loss 0.28463 (out 0.00991, feat 0.27472), lr 9.16e-05, 0.22 s/step, 23.0 min
+step 5950: loss 0.28435 (out 0.00990, feat 0.27445), lr 9.15e-05, 0.22 s/step, 23.1 min
+step 5975: loss 0.28305 (out 0.00987, feat 0.27318), lr 9.15e-05, 0.22 s/step, 23.2 min
+step 6000: loss 0.28251 (out 0.00984, feat 0.27267), lr 9.14e-05, 0.22 s/step, 23.3 min
+eval 6000: val mae 0.09386 (blend 0.14288) | gate mae 0.10927 worst 0.14451 blend 0.16835 max_abs 5.1499
+step 6025: loss 0.27604 (out 0.00932, feat 0.26671), lr 9.13e-05, 0.22 s/step, 23.4 min
+step 6050: loss 0.27921 (out 0.00958, feat 0.26963), lr 9.13e-05, 0.22 s/step, 23.5 min
+step 6075: loss 0.27886 (out 0.00955, feat 0.26931), lr 9.12e-05, 0.22 s/step, 23.6 min
+step 6100: loss 0.27869 (out 0.00959, feat 0.26910), lr 9.11e-05, 0.22 s/step, 23.7 min
+step 6125: loss 0.27780 (out 0.00954, feat 0.26827), lr 9.11e-05, 0.22 s/step, 23.8 min
+step 6150: loss 0.27696 (out 0.00952, feat 0.26745), lr 9.10e-05, 0.22 s/step, 23.9 min
+step 6175: loss 0.27630 (out 0.00943, feat 0.26687), lr 9.09e-05, 0.22 s/step, 24.0 min
+step 6200: loss 0.27557 (out 0.00933, feat 0.26624), lr 9.08e-05, 0.22 s/step, 24.1 min
+step 6225: loss 0.27557 (out 0.00931, feat 0.26626), lr 9.08e-05, 0.23 s/step, 24.2 min
+step 6250: loss 0.27549 (out 0.00930, feat 0.26619), lr 9.07e-05, 0.22 s/step, 24.3 min
+eval 6250: val mae 0.09024 (blend 0.13817) | gate mae 0.10872 worst 0.14976 blend 0.16723 max_abs 5.0898
+step 6275: loss 0.26907 (out 0.00899, feat 0.26009), lr 9.06e-05, 0.22 s/step, 24.4 min
+step 6300: loss 0.27432 (out 0.00938, feat 0.26494), lr 9.06e-05, 0.22 s/step, 24.5 min
+step 6325: loss 0.27158 (out 0.00930, feat 0.26228), lr 9.05e-05, 0.22 s/step, 24.6 min
+step 6350: loss 0.27500 (out 0.00950, feat 0.26550), lr 9.04e-05, 0.22 s/step, 24.7 min
+step 6375: loss 0.27647 (out 0.00948, feat 0.26700), lr 9.03e-05, 0.22 s/step, 24.8 min
+step 6400: loss 0.27688 (out 0.00947, feat 0.26742), lr 9.03e-05, 0.22 s/step, 24.9 min
+step 6425: loss 0.27721 (out 0.00946, feat 0.26775), lr 9.02e-05, 0.22 s/step, 25.0 min
+step 6450: loss 0.27750 (out 0.00948, feat 0.26802), lr 9.01e-05, 0.22 s/step, 25.0 min
+step 6475: loss 0.27679 (out 0.00943, feat 0.26736), lr 9.00e-05, 0.22 s/step, 25.1 min
+step 6500: loss 0.27606 (out 0.00937, feat 0.26669), lr 9.00e-05, 0.22 s/step, 25.2 min
+eval 6500: val mae 0.09317 (blend 0.14292) | gate mae 0.10989 worst 0.15324 blend 0.17020 max_abs 5.2016
+step 6525: loss 0.27184 (out 0.00899, feat 0.26285), lr 8.99e-05, 0.22 s/step, 25.4 min
+step 6550: loss 0.26700 (out 0.00898, feat 0.25801), lr 8.98e-05, 0.39 s/step, 25.5 min
+step 6575: loss 0.26728 (out 0.00916, feat 0.25811), lr 8.97e-05, 0.22 s/step, 25.6 min
+step 6600: loss 0.26682 (out 0.00908, feat 0.25774), lr 8.97e-05, 0.22 s/step, 25.7 min
+step 6625: loss 0.26597 (out 0.00902, feat 0.25695), lr 8.96e-05, 0.22 s/step, 25.8 min
+step 6650: loss 0.26579 (out 0.00908, feat 0.25671), lr 8.95e-05, 0.22 s/step, 25.9 min
+step 6675: loss 0.26503 (out 0.00908, feat 0.25596), lr 8.94e-05, 0.22 s/step, 26.0 min
+step 6700: loss 0.26485 (out 0.00915, feat 0.25571), lr 8.94e-05, 0.22 s/step, 26.1 min
+step 6725: loss 0.26479 (out 0.00910, feat 0.25569), lr 8.93e-05, 0.22 s/step, 26.2 min
+step 6750: loss 0.26474 (out 0.00913, feat 0.25561), lr 8.92e-05, 0.22 s/step, 26.3 min
+eval 6750: val mae 0.09094 (blend 0.13937) | gate mae 0.10876 worst 0.15968 blend 0.16839 max_abs 5.2375
+step 6775: loss 0.26665 (out 0.00892, feat 0.25773), lr 8.91e-05, 0.22 s/step, 26.4 min
+step 6800: loss 0.26884 (out 0.00907, feat 0.25976), lr 8.91e-05, 0.22 s/step, 26.5 min
+step 6825: loss 0.26907 (out 0.00913, feat 0.25994), lr 8.90e-05, 0.22 s/step, 26.6 min
+step 6850: loss 0.26868 (out 0.00904, feat 0.25965), lr 8.89e-05, 0.22 s/step, 26.7 min
+step 6875: loss 0.26737 (out 0.00901, feat 0.25836), lr 8.88e-05, 0.22 s/step, 26.7 min
+step 6900: loss 0.26858 (out 0.00904, feat 0.25955), lr 8.88e-05, 0.22 s/step, 26.8 min
+step 6925: loss 0.26754 (out 0.00908, feat 0.25846), lr 8.87e-05, 0.22 s/step, 26.9 min
+step 6950: loss 0.26691 (out 0.00902, feat 0.25788), lr 8.86e-05, 0.22 s/step, 27.0 min
+step 6975: loss 0.26630 (out 0.00895, feat 0.25734), lr 8.85e-05, 0.22 s/step, 27.1 min
+step 7000: loss 0.26713 (out 0.00898, feat 0.25814), lr 8.84e-05, 0.22 s/step, 27.2 min
+eval 7000: val mae 0.09238 (blend 0.14215) | gate mae 0.10976 worst 0.15221 blend 0.16915 max_abs 5.2282
+step 7025: loss 0.27022 (out 0.00971, feat 0.26051), lr 8.84e-05, 0.22 s/step, 27.3 min
+step 7050: loss 0.26647 (out 0.00919, feat 0.25728), lr 8.83e-05, 0.22 s/step, 27.4 min
+step 7075: loss 0.26925 (out 0.00917, feat 0.26009), lr 8.82e-05, 0.22 s/step, 27.5 min
+step 7100: loss 0.26743 (out 0.00913, feat 0.25830), lr 8.81e-05, 0.22 s/step, 27.6 min
+step 7125: loss 0.26597 (out 0.00900, feat 0.25697), lr 8.80e-05, 0.22 s/step, 27.7 min
+step 7150: loss 0.26528 (out 0.00894, feat 0.25634), lr 8.80e-05, 0.22 s/step, 27.8 min
+step 7175: loss 0.26400 (out 0.00885, feat 0.25515), lr 8.79e-05, 0.22 s/step, 27.9 min
+step 7200: loss 0.26336 (out 0.00879, feat 0.25457), lr 8.78e-05, 0.22 s/step, 28.0 min
+step 7225: loss 0.26308 (out 0.00881, feat 0.25427), lr 8.77e-05, 0.22 s/step, 28.1 min
+step 7250: loss 0.26242 (out 0.00881, feat 0.25362), lr 8.76e-05, 0.22 s/step, 28.2 min
+eval 7250: val mae 0.09326 (blend 0.14278) | gate mae 0.11146 worst 0.14843 blend 0.17145 max_abs 5.2371
+step 7275: loss 0.25883 (out 0.00896, feat 0.24987), lr 8.76e-05, 0.22 s/step, 28.3 min
+step 7300: loss 0.25581 (out 0.00864, feat 0.24717), lr 8.75e-05, 0.22 s/step, 28.4 min
+step 7325: loss 0.25689 (out 0.00887, feat 0.24802), lr 8.74e-05, 0.22 s/step, 28.5 min
+step 7350: loss 0.25824 (out 0.00887, feat 0.24937), lr 8.73e-05, 0.22 s/step, 28.6 min
+step 7375: loss 0.25800 (out 0.00879, feat 0.24921), lr 8.72e-05, 0.22 s/step, 28.7 min
+step 7400: loss 0.25779 (out 0.00880, feat 0.24899), lr 8.72e-05, 0.22 s/step, 28.7 min
+step 7425: loss 0.25813 (out 0.00881, feat 0.24932), lr 8.71e-05, 0.22 s/step, 28.8 min
+step 7450: loss 0.25787 (out 0.00875, feat 0.24911), lr 8.70e-05, 0.22 s/step, 28.9 min
+step 7475: loss 0.25718 (out 0.00869, feat 0.24849), lr 8.69e-05, 0.22 s/step, 29.0 min
+step 7500: loss 0.25739 (out 0.00869, feat 0.24870), lr 8.68e-05, 0.22 s/step, 29.1 min
+eval 7500: val mae 0.09358 (blend 0.14138) | gate mae 0.11049 worst 0.14543 blend 0.16900 max_abs 5.3152
+step 7525: loss 0.26492 (out 0.00884, feat 0.25608), lr 8.67e-05, 0.22 s/step, 29.2 min
+step 7550: loss 0.26428 (out 0.00884, feat 0.25544), lr 8.67e-05, 0.22 s/step, 29.3 min
+step 7575: loss 0.26017 (out 0.00874, feat 0.25143), lr 8.66e-05, 0.22 s/step, 29.4 min
+step 7600: loss 0.25936 (out 0.00880, feat 0.25055), lr 8.65e-05, 0.22 s/step, 29.5 min
+step 7625: loss 0.25997 (out 0.00882, feat 0.25115), lr 8.64e-05, 0.22 s/step, 29.6 min
+step 7650: loss 0.25955 (out 0.00880, feat 0.25074), lr 8.63e-05, 0.22 s/step, 29.7 min
+step 7675: loss 0.25845 (out 0.00875, feat 0.24970), lr 8.62e-05, 0.22 s/step, 29.8 min
+step 7700: loss 0.25702 (out 0.00874, feat 0.24828), lr 8.61e-05, 0.22 s/step, 29.9 min
+step 7725: loss 0.25649 (out 0.00865, feat 0.24784), lr 8.61e-05, 0.22 s/step, 30.0 min
+step 7750: loss 0.25564 (out 0.00864, feat 0.24700), lr 8.60e-05, 0.22 s/step, 30.1 min
+eval 7750: val mae 0.09024 (blend 0.13784) | gate mae 0.10865 worst 0.14680 blend 0.16586 max_abs 5.2189
+step 7775: loss 0.25114 (out 0.00851, feat 0.24263), lr 8.59e-05, 0.22 s/step, 30.2 min
+step 7800: loss 0.24980 (out 0.00837, feat 0.24143), lr 8.58e-05, 0.22 s/step, 30.3 min
+step 7825: loss 0.25184 (out 0.00837, feat 0.24347), lr 8.57e-05, 0.22 s/step, 30.4 min
+step 7850: loss 0.25123 (out 0.00828, feat 0.24295), lr 8.56e-05, 0.39 s/step, 30.5 min
+step 7875: loss 0.25064 (out 0.00829, feat 0.24235), lr 8.55e-05, 0.22 s/step, 30.6 min
+step 7900: loss 0.24987 (out 0.00827, feat 0.24160), lr 8.55e-05, 0.22 s/step, 30.7 min
+step 7925: loss 0.24988 (out 0.00822, feat 0.24166), lr 8.54e-05, 0.22 s/step, 30.8 min
+step 7950: loss 0.24931 (out 0.00818, feat 0.24113), lr 8.53e-05, 0.22 s/step, 30.9 min
+step 7975: loss 0.24985 (out 0.00820, feat 0.24165), lr 8.52e-05, 0.22 s/step, 31.0 min
+step 8000: loss 0.24990 (out 0.00820, feat 0.24171), lr 8.51e-05, 0.22 s/step, 31.1 min
+eval 8000: val mae 0.08972 (blend 0.13722) | gate mae 0.10819 worst 0.14656 blend 0.16782 max_abs 5.3300
+step 8025: loss 0.25448 (out 0.00838, feat 0.24610), lr 8.50e-05, 0.22 s/step, 31.2 min
+step 8050: loss 0.25220 (out 0.00846, feat 0.24374), lr 8.49e-05, 0.22 s/step, 31.3 min
+step 8075: loss 0.25132 (out 0.00837, feat 0.24296), lr 8.48e-05, 0.22 s/step, 31.4 min
+step 8100: loss 0.24867 (out 0.00830, feat 0.24036), lr 8.48e-05, 0.22 s/step, 31.5 min
+step 8125: loss 0.24808 (out 0.00827, feat 0.23981), lr 8.47e-05, 0.21 s/step, 31.6 min
+step 8150: loss 0.24897 (out 0.00837, feat 0.24060), lr 8.46e-05, 0.21 s/step, 31.7 min
+step 8175: loss 0.24897 (out 0.00839, feat 0.24058), lr 8.45e-05, 0.22 s/step, 31.8 min
+step 8200: loss 0.24971 (out 0.00838, feat 0.24133), lr 8.44e-05, 0.21 s/step, 31.8 min
+step 8225: loss 0.24956 (out 0.00843, feat 0.24113), lr 8.43e-05, 0.21 s/step, 31.9 min
+step 8250: loss 0.24980 (out 0.00841, feat 0.24139), lr 8.42e-05, 0.21 s/step, 32.0 min
+eval 8250: val mae 0.08981 (blend 0.13676) | gate mae 0.10903 worst 0.14162 blend 0.16663 max_abs 5.3305
+step 8275: loss 0.24643 (out 0.00838, feat 0.23805), lr 8.41e-05, 0.22 s/step, 32.1 min
+step 8300: loss 0.25056 (out 0.00847, feat 0.24209), lr 8.40e-05, 0.21 s/step, 32.2 min
+step 8325: loss 0.24999 (out 0.00856, feat 0.24143), lr 8.40e-05, 0.22 s/step, 32.3 min
+step 8350: loss 0.25142 (out 0.00876, feat 0.24266), lr 8.39e-05, 0.22 s/step, 32.4 min
+step 8375: loss 0.24935 (out 0.00867, feat 0.24068), lr 8.38e-05, 0.21 s/step, 32.5 min
+step 8400: loss 0.24779 (out 0.00852, feat 0.23927), lr 8.37e-05, 0.22 s/step, 32.6 min
+step 8425: loss 0.24794 (out 0.00857, feat 0.23938), lr 8.36e-05, 0.22 s/step, 32.7 min
+step 8450: loss 0.24817 (out 0.00860, feat 0.23958), lr 8.35e-05, 0.21 s/step, 32.8 min
+step 8475: loss 0.24826 (out 0.00852, feat 0.23973), lr 8.34e-05, 0.21 s/step, 32.9 min
+step 8500: loss 0.24759 (out 0.00850, feat 0.23909), lr 8.33e-05, 0.21 s/step, 33.0 min
+eval 8500: val mae 0.09124 (blend 0.13836) | gate mae 0.10891 worst 0.14596 blend 0.16809 max_abs 5.1640
+step 8525: loss 0.24739 (out 0.00901, feat 0.23839), lr 8.32e-05, 0.22 s/step, 33.1 min
+step 8550: loss 0.25014 (out 0.00889, feat 0.24125), lr 8.31e-05, 0.21 s/step, 33.2 min
+step 8575: loss 0.24977 (out 0.00877, feat 0.24100), lr 8.30e-05, 0.21 s/step, 33.3 min
+step 8600: loss 0.24944 (out 0.00872, feat 0.24072), lr 8.30e-05, 0.22 s/step, 33.4 min
+step 8625: loss 0.24863 (out 0.00868, feat 0.23995), lr 8.29e-05, 0.21 s/step, 33.4 min
+step 8650: loss 0.24740 (out 0.00859, feat 0.23881), lr 8.28e-05, 0.21 s/step, 33.5 min
+step 8675: loss 0.24666 (out 0.00854, feat 0.23812), lr 8.27e-05, 0.21 s/step, 33.6 min
+step 8700: loss 0.24552 (out 0.00852, feat 0.23700), lr 8.26e-05, 0.22 s/step, 33.7 min
+step 8725: loss 0.24530 (out 0.00859, feat 0.23671), lr 8.25e-05, 0.21 s/step, 33.8 min
+step 8750: loss 0.24436 (out 0.00853, feat 0.23583), lr 8.24e-05, 0.21 s/step, 33.9 min
+eval 8750: val mae 0.09108 (blend 0.14008) | gate mae 0.10932 worst 0.15018 blend 0.16972 max_abs 5.1650
+step 8775: loss 0.24356 (out 0.00859, feat 0.23498), lr 8.23e-05, 0.22 s/step, 34.0 min
+step 8800: loss 0.24186 (out 0.00834, feat 0.23352), lr 8.22e-05, 0.21 s/step, 34.1 min
+step 8825: loss 0.24210 (out 0.00841, feat 0.23369), lr 8.21e-05, 0.21 s/step, 34.2 min
+step 8850: loss 0.24222 (out 0.00823, feat 0.23399), lr 8.20e-05, 0.21 s/step, 34.3 min
+step 8875: loss 0.24201 (out 0.00811, feat 0.23390), lr 8.19e-05, 0.22 s/step, 34.4 min
+step 8900: loss 0.24204 (out 0.00811, feat 0.23393), lr 8.18e-05, 0.21 s/step, 34.5 min
+step 8925: loss 0.24154 (out 0.00798, feat 0.23356), lr 8.17e-05, 0.21 s/step, 34.5 min
+step 8950: loss 0.24063 (out 0.00798, feat 0.23266), lr 8.16e-05, 0.22 s/step, 34.6 min
+step 8975: loss 0.24115 (out 0.00799, feat 0.23316), lr 8.15e-05, 0.21 s/step, 34.7 min
+step 9000: loss 0.24051 (out 0.00795, feat 0.23257), lr 8.15e-05, 0.21 s/step, 34.8 min
+eval 9000: val mae 0.08636 (blend 0.13242) | gate mae 0.10549 worst 0.14094 blend 0.16284 max_abs 5.1449 | best
+step 9025: loss 0.24276 (out 0.00824, feat 0.23452), lr 8.14e-05, 0.21 s/step, 35.0 min
+step 9050: loss 0.23838 (out 0.00788, feat 0.23049), lr 8.13e-05, 0.22 s/step, 35.1 min
+step 9075: loss 0.23811 (out 0.00790, feat 0.23022), lr 8.12e-05, 0.21 s/step, 35.1 min
+step 9100: loss 0.23693 (out 0.00784, feat 0.22909), lr 8.11e-05, 0.21 s/step, 35.2 min
+step 9125: loss 0.23722 (out 0.00782, feat 0.22940), lr 8.10e-05, 0.22 s/step, 35.3 min
+step 9150: loss 0.23734 (out 0.00778, feat 0.22956), lr 8.09e-05, 0.22 s/step, 35.4 min
+step 9175: loss 0.23697 (out 0.00794, feat 0.22904), lr 8.08e-05, 0.21 s/step, 35.5 min
+step 9200: loss 0.23647 (out 0.00796, feat 0.22851), lr 8.07e-05, 0.39 s/step, 35.7 min
+step 9225: loss 0.23695 (out 0.00800, feat 0.22895), lr 8.06e-05, 0.21 s/step, 35.8 min
+step 9250: loss 0.23661 (out 0.00800, feat 0.22861), lr 8.05e-05, 0.21 s/step, 35.8 min
+eval 9250: val mae 0.08965 (blend 0.13668) | gate mae 0.10751 worst 0.14630 blend 0.16477 max_abs 5.2748
+step 9275: loss 0.23561 (out 0.00823, feat 0.22738), lr 8.04e-05, 0.21 s/step, 36.0 min
+step 9300: loss 0.23635 (out 0.00842, feat 0.22794), lr 8.03e-05, 0.22 s/step, 36.1 min
+step 9325: loss 0.23840 (out 0.00835, feat 0.23005), lr 8.02e-05, 0.21 s/step, 36.1 min
+step 9350: loss 0.23746 (out 0.00818, feat 0.22928), lr 8.01e-05, 0.21 s/step, 36.2 min
+step 9375: loss 0.23917 (out 0.00819, feat 0.23098), lr 8.00e-05, 0.22 s/step, 36.3 min
+step 9400: loss 0.23849 (out 0.00817, feat 0.23032), lr 7.99e-05, 0.21 s/step, 36.4 min
+step 9425: loss 0.23696 (out 0.00809, feat 0.22888), lr 7.98e-05, 0.21 s/step, 36.5 min
+step 9450: loss 0.23610 (out 0.00804, feat 0.22806), lr 7.97e-05, 0.22 s/step, 36.6 min
+step 9475: loss 0.23571 (out 0.00802, feat 0.22769), lr 7.96e-05, 0.21 s/step, 36.7 min
+step 9500: loss 0.23502 (out 0.00798, feat 0.22704), lr 7.95e-05, 0.21 s/step, 36.8 min
+eval 9500: val mae 0.08668 (blend 0.13288) | gate mae 0.10810 worst 0.14275 blend 0.16710 max_abs 5.2503
+step 9525: loss 0.23200 (out 0.00777, feat 0.22423), lr 7.94e-05, 0.21 s/step, 36.9 min
+step 9550: loss 0.23247 (out 0.00767, feat 0.22480), lr 7.93e-05, 0.22 s/step, 37.0 min
+step 9575: loss 0.23337 (out 0.00774, feat 0.22563), lr 7.92e-05, 0.21 s/step, 37.1 min
+step 9600: loss 0.23282 (out 0.00766, feat 0.22517), lr 7.91e-05, 0.21 s/step, 37.2 min
+step 9625: loss 0.23311 (out 0.00768, feat 0.22543), lr 7.90e-05, 0.22 s/step, 37.3 min
+step 9650: loss 0.23284 (out 0.00766, feat 0.22517), lr 7.89e-05, 0.21 s/step, 37.3 min
+step 9675: loss 0.23223 (out 0.00757, feat 0.22466), lr 7.88e-05, 0.21 s/step, 37.4 min
+step 9700: loss 0.23270 (out 0.00759, feat 0.22512), lr 7.87e-05, 0.21 s/step, 37.5 min
+step 9725: loss 0.23322 (out 0.00757, feat 0.22564), lr 7.86e-05, 0.22 s/step, 37.6 min
+step 9750: loss 0.23395 (out 0.00758, feat 0.22638), lr 7.85e-05, 0.21 s/step, 37.7 min
+eval 9750: val mae 0.08518 (blend 0.12994) | gate mae 0.10414 worst 0.13747 blend 0.16043 max_abs 5.2117 | best
+step 9775: loss 0.23884 (out 0.00826, feat 0.23058), lr 7.84e-05, 0.22 s/step, 37.9 min
+step 9800: loss 0.23773 (out 0.00850, feat 0.22922), lr 7.83e-05, 0.22 s/step, 37.9 min
+step 9825: loss 0.23545 (out 0.00812, feat 0.22734), lr 7.82e-05, 0.21 s/step, 38.0 min
+step 9850: loss 0.23488 (out 0.00805, feat 0.22683), lr 7.81e-05, 0.21 s/step, 38.1 min
+step 9875: loss 0.23454 (out 0.00797, feat 0.22657), lr 7.80e-05, 0.21 s/step, 38.2 min
+step 9900: loss 0.23386 (out 0.00785, feat 0.22601), lr 7.79e-05, 0.22 s/step, 38.3 min
+step 9925: loss 0.23327 (out 0.00782, feat 0.22545), lr 7.78e-05, 0.21 s/step, 38.4 min
+step 9950: loss 0.23253 (out 0.00775, feat 0.22478), lr 7.77e-05, 0.21 s/step, 38.5 min
+step 9975: loss 0.23338 (out 0.00778, feat 0.22560), lr 7.76e-05, 0.22 s/step, 38.6 min
+step 10000: loss 0.23334 (out 0.00785, feat 0.22549), lr 7.75e-05, 0.21 s/step, 38.7 min
+eval 10000: val mae 0.09027 (blend 0.13854) | gate mae 0.11012 worst 0.15207 blend 0.17006 max_abs 5.2444
+step 10025: loss 0.24176 (out 0.00800, feat 0.23376), lr 7.74e-05, 0.21 s/step, 38.8 min
+step 10050: loss 0.23917 (out 0.00800, feat 0.23117), lr 7.73e-05, 0.22 s/step, 38.9 min
+step 10075: loss 0.23464 (out 0.00791, feat 0.22673), lr 7.72e-05, 0.21 s/step, 39.0 min
+step 10100: loss 0.23475 (out 0.00790, feat 0.22685), lr 7.71e-05, 0.21 s/step, 39.0 min
+step 10125: loss 0.23325 (out 0.00778, feat 0.22547), lr 7.70e-05, 0.21 s/step, 39.1 min
+step 10150: loss 0.23232 (out 0.00775, feat 0.22457), lr 7.69e-05, 0.22 s/step, 39.2 min
+step 10175: loss 0.23227 (out 0.00775, feat 0.22452), lr 7.68e-05, 0.21 s/step, 39.3 min
+step 10200: loss 0.23153 (out 0.00765, feat 0.22388), lr 7.67e-05, 0.21 s/step, 39.4 min
+step 10225: loss 0.23163 (out 0.00760, feat 0.22403), lr 7.66e-05, 0.22 s/step, 39.5 min
+step 10250: loss 0.23138 (out 0.00758, feat 0.22380), lr 7.65e-05, 0.21 s/step, 39.6 min
+eval 10250: val mae 0.08744 (blend 0.13443) | gate mae 0.10539 worst 0.14541 blend 0.16221 max_abs 5.2124
+step 10275: loss 0.22858 (out 0.00764, feat 0.22095), lr 7.64e-05, 0.21 s/step, 39.7 min
+step 10300: loss 0.22512 (out 0.00742, feat 0.21770), lr 7.63e-05, 0.21 s/step, 39.8 min
+step 10325: loss 0.22651 (out 0.00737, feat 0.21914), lr 7.62e-05, 0.22 s/step, 39.9 min
+step 10350: loss 0.22654 (out 0.00735, feat 0.21918), lr 7.61e-05, 0.21 s/step, 40.0 min
+step 10375: loss 0.22655 (out 0.00747, feat 0.21908), lr 7.60e-05, 0.21 s/step, 40.1 min
+step 10400: loss 0.22693 (out 0.00748, feat 0.21946), lr 7.58e-05, 0.22 s/step, 40.2 min
+step 10425: loss 0.22719 (out 0.00746, feat 0.21974), lr 7.57e-05, 0.21 s/step, 40.2 min
+step 10450: loss 0.22722 (out 0.00744, feat 0.21978), lr 7.56e-05, 0.21 s/step, 40.3 min
+step 10475: loss 0.22734 (out 0.00743, feat 0.21991), lr 7.55e-05, 0.21 s/step, 40.4 min
+step 10500: loss 0.22725 (out 0.00745, feat 0.21980), lr 7.54e-05, 0.22 s/step, 40.5 min
+eval 10500: val mae 0.08738 (blend 0.13407) | gate mae 0.10846 worst 0.14510 blend 0.16752 max_abs 5.1663
+step 10525: loss 0.22676 (out 0.00764, feat 0.21912), lr 7.53e-05, 0.38 s/step, 40.7 min
+step 10550: loss 0.22711 (out 0.00774, feat 0.21937), lr 7.52e-05, 0.21 s/step, 40.8 min
+step 10575: loss 0.22700 (out 0.00777, feat 0.21923), lr 7.51e-05, 0.22 s/step, 40.9 min
+step 10600: loss 0.22457 (out 0.00756, feat 0.21702), lr 7.50e-05, 0.22 s/step, 41.0 min
+step 10625: loss 0.22442 (out 0.00752, feat 0.21690), lr 7.49e-05, 0.22 s/step, 41.1 min
+step 10650: loss 0.22436 (out 0.00747, feat 0.21689), lr 7.48e-05, 0.22 s/step, 41.2 min
+step 10675: loss 0.22443 (out 0.00740, feat 0.21703), lr 7.47e-05, 0.21 s/step, 41.2 min
+step 10700: loss 0.22318 (out 0.00735, feat 0.21583), lr 7.46e-05, 0.21 s/step, 41.3 min
+step 10725: loss 0.22307 (out 0.00735, feat 0.21572), lr 7.45e-05, 0.21 s/step, 41.4 min
+step 10750: loss 0.22352 (out 0.00736, feat 0.21616), lr 7.44e-05, 0.22 s/step, 41.5 min
+eval 10750: val mae 0.08471 (blend 0.12999) | gate mae 0.10580 worst 0.14182 blend 0.16463 max_abs 5.0981 | best
+step 10775: loss 0.23348 (out 0.00753, feat 0.22596), lr 7.43e-05, 0.21 s/step, 41.7 min
+step 10800: loss 0.23068 (out 0.00754, feat 0.22314), lr 7.42e-05, 0.21 s/step, 41.8 min
+step 10825: loss 0.23040 (out 0.00754, feat 0.22286), lr 7.41e-05, 0.22 s/step, 41.8 min
+step 10850: loss 0.22887 (out 0.00751, feat 0.22136), lr 7.39e-05, 0.21 s/step, 41.9 min
+step 10875: loss 0.22740 (out 0.00743, feat 0.21997), lr 7.38e-05, 0.21 s/step, 42.0 min
+step 10900: loss 0.22742 (out 0.00742, feat 0.22001), lr 7.37e-05, 0.21 s/step, 42.1 min
+step 10925: loss 0.22648 (out 0.00737, feat 0.21912), lr 7.36e-05, 0.22 s/step, 42.2 min
+step 10950: loss 0.22547 (out 0.00735, feat 0.21812), lr 7.35e-05, 0.21 s/step, 42.3 min
+step 10975: loss 0.22533 (out 0.00740, feat 0.21792), lr 7.34e-05, 0.21 s/step, 42.4 min
+step 11000: loss 0.22478 (out 0.00743, feat 0.21735), lr 7.33e-05, 0.22 s/step, 42.5 min
+eval 11000: val mae 0.08775 (blend 0.13507) | gate mae 0.10509 worst 0.13437 blend 0.16283 max_abs 5.0814
+step 11025: loss 0.22516 (out 0.00763, feat 0.21753), lr 7.32e-05, 0.21 s/step, 42.6 min
+step 11050: loss 0.22094 (out 0.00752, feat 0.21342), lr 7.31e-05, 0.21 s/step, 42.7 min
+step 11075: loss 0.22082 (out 0.00758, feat 0.21323), lr 7.30e-05, 0.22 s/step, 42.8 min
+step 11100: loss 0.22150 (out 0.00760, feat 0.21390), lr 7.29e-05, 0.21 s/step, 42.9 min
+step 11125: loss 0.22125 (out 0.00750, feat 0.21375), lr 7.28e-05, 0.21 s/step, 42.9 min
+step 11150: loss 0.22090 (out 0.00746, feat 0.21344), lr 7.27e-05, 0.21 s/step, 43.0 min
+step 11175: loss 0.22058 (out 0.00742, feat 0.21316), lr 7.25e-05, 0.22 s/step, 43.1 min
+step 11200: loss 0.21999 (out 0.00738, feat 0.21261), lr 7.24e-05, 0.21 s/step, 43.2 min
+step 11225: loss 0.21941 (out 0.00734, feat 0.21207), lr 7.23e-05, 0.21 s/step, 43.3 min
+step 11250: loss 0.21918 (out 0.00740, feat 0.21177), lr 7.22e-05, 0.22 s/step, 43.4 min
+eval 11250: val mae 0.08742 (blend 0.13472) | gate mae 0.10685 worst 0.14443 blend 0.16581 max_abs 5.1752
+step 11275: loss 0.22331 (out 0.00735, feat 0.21596), lr 7.21e-05, 0.21 s/step, 43.5 min
+step 11300: loss 0.21872 (out 0.00733, feat 0.21139), lr 7.20e-05, 0.21 s/step, 43.6 min
+step 11325: loss 0.21983 (out 0.00733, feat 0.21250), lr 7.19e-05, 0.21 s/step, 43.7 min
+step 11350: loss 0.21898 (out 0.00722, feat 0.21176), lr 7.18e-05, 0.22 s/step, 43.8 min
+step 11375: loss 0.21949 (out 0.00721, feat 0.21228), lr 7.17e-05, 0.21 s/step, 43.9 min
+step 11400: loss 0.21911 (out 0.00720, feat 0.21191), lr 7.16e-05, 0.21 s/step, 44.0 min
+step 11425: loss 0.21913 (out 0.00721, feat 0.21192), lr 7.15e-05, 0.22 s/step, 44.1 min
+step 11450: loss 0.21815 (out 0.00717, feat 0.21098), lr 7.13e-05, 0.22 s/step, 44.1 min
+step 11475: loss 0.21753 (out 0.00720, feat 0.21033), lr 7.12e-05, 0.22 s/step, 44.2 min
+step 11500: loss 0.21767 (out 0.00722, feat 0.21045), lr 7.11e-05, 0.22 s/step, 44.3 min
+eval 11500: val mae 0.08694 (blend 0.13257) | gate mae 0.10719 worst 0.14259 blend 0.16476 max_abs 5.2227
+step 11525: loss 0.21651 (out 0.00735, feat 0.20916), lr 7.10e-05, 0.23 s/step, 44.5 min
+step 11550: loss 0.21801 (out 0.00747, feat 0.21054), lr 7.09e-05, 0.22 s/step, 44.6 min
+step 11575: loss 0.21834 (out 0.00752, feat 0.21081), lr 7.08e-05, 0.22 s/step, 44.6 min
+step 11600: loss 0.21602 (out 0.00739, feat 0.20863), lr 7.07e-05, 0.22 s/step, 44.7 min
+step 11625: loss 0.21550 (out 0.00736, feat 0.20813), lr 7.06e-05, 0.22 s/step, 44.8 min
+step 11650: loss 0.21482 (out 0.00736, feat 0.20746), lr 7.05e-05, 0.22 s/step, 44.9 min
+step 11675: loss 0.21403 (out 0.00729, feat 0.20673), lr 7.04e-05, 0.22 s/step, 45.0 min
+step 11700: loss 0.21304 (out 0.00723, feat 0.20580), lr 7.02e-05, 0.22 s/step, 45.1 min
+step 11725: loss 0.21282 (out 0.00718, feat 0.20564), lr 7.01e-05, 0.22 s/step, 45.2 min
+step 11750: loss 0.21268 (out 0.00713, feat 0.20555), lr 7.00e-05, 0.22 s/step, 45.3 min
+eval 11750: val mae 0.08678 (blend 0.13376) | gate mae 0.10705 worst 0.13903 blend 0.16596 max_abs 5.1599
+step 11775: loss 0.21169 (out 0.00658, feat 0.20512), lr 6.99e-05, 0.22 s/step, 45.4 min
+step 11800: loss 0.21260 (out 0.00661, feat 0.20599), lr 6.98e-05, 0.22 s/step, 45.5 min
+step 11825: loss 0.21064 (out 0.00670, feat 0.20394), lr 6.97e-05, 0.22 s/step, 45.6 min
+step 11850: loss 0.21031 (out 0.00678, feat 0.20353), lr 6.96e-05, 0.39 s/step, 45.8 min
+step 11875: loss 0.21064 (out 0.00679, feat 0.20385), lr 6.95e-05, 0.22 s/step, 45.8 min
+step 11900: loss 0.21102 (out 0.00690, feat 0.20413), lr 6.94e-05, 0.22 s/step, 45.9 min
+step 11925: loss 0.21142 (out 0.00697, feat 0.20444), lr 6.92e-05, 0.22 s/step, 46.0 min
+step 11950: loss 0.21153 (out 0.00705, feat 0.20448), lr 6.91e-05, 0.22 s/step, 46.1 min
+step 11975: loss 0.21177 (out 0.00701, feat 0.20477), lr 6.90e-05, 0.22 s/step, 46.2 min
+step 12000: loss 0.21169 (out 0.00700, feat 0.20470), lr 6.89e-05, 0.22 s/step, 46.3 min
+eval 12000: val mae 0.08718 (blend 0.13340) | gate mae 0.10608 worst 0.13759 blend 0.16384 max_abs 4.9703
+step 12025: loss 0.22522 (out 0.00720, feat 0.21802), lr 6.88e-05, 0.22 s/step, 46.4 min
+step 12050: loss 0.22609 (out 0.00739, feat 0.21870), lr 6.87e-05, 0.22 s/step, 46.5 min
+step 12075: loss 0.22189 (out 0.00740, feat 0.21449), lr 6.86e-05, 0.22 s/step, 46.6 min
+step 12100: loss 0.22009 (out 0.00726, feat 0.21282), lr 6.85e-05, 0.23 s/step, 46.7 min
+step 12125: loss 0.21759 (out 0.00712, feat 0.21047), lr 6.83e-05, 0.22 s/step, 46.8 min
+step 12150: loss 0.21594 (out 0.00706, feat 0.20888), lr 6.82e-05, 0.22 s/step, 46.9 min
+step 12175: loss 0.21545 (out 0.00705, feat 0.20840), lr 6.81e-05, 0.22 s/step, 47.0 min
+step 12200: loss 0.21460 (out 0.00702, feat 0.20759), lr 6.80e-05, 0.22 s/step, 47.1 min
+step 12225: loss 0.21436 (out 0.00699, feat 0.20738), lr 6.79e-05, 0.22 s/step, 47.2 min
+step 12250: loss 0.21390 (out 0.00697, feat 0.20693), lr 6.78e-05, 0.22 s/step, 47.3 min
+eval 12250: val mae 0.08757 (blend 0.13339) | gate mae 0.10583 worst 0.13884 blend 0.16143 max_abs 4.9523
+step 12275: loss 0.22143 (out 0.00773, feat 0.21370), lr 6.77e-05, 0.22 s/step, 47.4 min
+step 12300: loss 0.21637 (out 0.00728, feat 0.20909), lr 6.76e-05, 0.22 s/step, 47.5 min
+step 12325: loss 0.21798 (out 0.00723, feat 0.21075), lr 6.74e-05, 0.22 s/step, 47.6 min
+step 12350: loss 0.21614 (out 0.00715, feat 0.20899), lr 6.73e-05, 0.22 s/step, 47.7 min
+step 12375: loss 0.21442 (out 0.00715, feat 0.20728), lr 6.72e-05, 0.22 s/step, 47.8 min
+step 12400: loss 0.21262 (out 0.00706, feat 0.20556), lr 6.71e-05, 0.22 s/step, 47.8 min
+step 12425: loss 0.21144 (out 0.00697, feat 0.20447), lr 6.70e-05, 0.22 s/step, 47.9 min
+step 12450: loss 0.21104 (out 0.00699, feat 0.20405), lr 6.69e-05, 0.22 s/step, 48.0 min
+step 12475: loss 0.21047 (out 0.00699, feat 0.20347), lr 6.68e-05, 0.22 s/step, 48.1 min
+step 12500: loss 0.21041 (out 0.00698, feat 0.20343), lr 6.66e-05, 0.22 s/step, 48.2 min
+eval 12500: val mae 0.08981 (blend 0.13815) | gate mae 0.10868 worst 0.14875 blend 0.16778 max_abs 4.8749
+step 12525: loss 0.20248 (out 0.00650, feat 0.19598), lr 6.65e-05, 0.22 s/step, 48.3 min
+step 12550: loss 0.20559 (out 0.00694, feat 0.19865), lr 6.64e-05, 0.22 s/step, 48.4 min
+step 12575: loss 0.20558 (out 0.00679, feat 0.19879), lr 6.63e-05, 0.22 s/step, 48.5 min
+step 12600: loss 0.20627 (out 0.00677, feat 0.19950), lr 6.62e-05, 0.22 s/step, 48.6 min
+step 12625: loss 0.20446 (out 0.00657, feat 0.19789), lr 6.61e-05, 0.22 s/step, 48.7 min
+step 12650: loss 0.20386 (out 0.00660, feat 0.19727), lr 6.60e-05, 0.22 s/step, 48.8 min
+step 12675: loss 0.20407 (out 0.00662, feat 0.19745), lr 6.58e-05, 0.22 s/step, 48.9 min
+step 12700: loss 0.20470 (out 0.00663, feat 0.19807), lr 6.57e-05, 0.22 s/step, 49.0 min
+step 12725: loss 0.20447 (out 0.00661, feat 0.19786), lr 6.56e-05, 0.22 s/step, 49.1 min
+step 12750: loss 0.20427 (out 0.00662, feat 0.19765), lr 6.55e-05, 0.22 s/step, 49.2 min
+eval 12750: val mae 0.08616 (blend 0.13215) | gate mae 0.10692 worst 0.14332 blend 0.16513 max_abs 5.1219
+step 12775: loss 0.20225 (out 0.00713, feat 0.19512), lr 6.54e-05, 0.22 s/step, 49.3 min
+step 12800: loss 0.20331 (out 0.00671, feat 0.19660), lr 6.53e-05, 0.23 s/step, 49.4 min
+step 12825: loss 0.20501 (out 0.00681, feat 0.19821), lr 6.52e-05, 0.22 s/step, 49.5 min
+step 12850: loss 0.20518 (out 0.00683, feat 0.19835), lr 6.50e-05, 0.22 s/step, 49.6 min
+step 12875: loss 0.20402 (out 0.00674, feat 0.19729), lr 6.49e-05, 0.23 s/step, 49.7 min
+step 12900: loss 0.20419 (out 0.00675, feat 0.19744), lr 6.48e-05, 0.22 s/step, 49.8 min
+step 12925: loss 0.20344 (out 0.00669, feat 0.19675), lr 6.47e-05, 0.22 s/step, 49.8 min
+step 12950: loss 0.20322 (out 0.00669, feat 0.19653), lr 6.46e-05, 0.22 s/step, 49.9 min
+step 12975: loss 0.20380 (out 0.00672, feat 0.19708), lr 6.45e-05, 0.22 s/step, 50.0 min
+step 13000: loss 0.20316 (out 0.00669, feat 0.19647), lr 6.44e-05, 0.22 s/step, 50.1 min
+eval 13000: val mae 0.08523 (blend 0.13101) | gate mae 0.10380 worst 0.13735 blend 0.16114 max_abs 5.0932
+step 13025: loss 0.20511 (out 0.00677, feat 0.19834), lr 6.42e-05, 0.22 s/step, 50.2 min
+step 13050: loss 0.19915 (out 0.00654, feat 0.19260), lr 6.41e-05, 0.22 s/step, 50.3 min
+step 13075: loss 0.19830 (out 0.00664, feat 0.19166), lr 6.40e-05, 0.22 s/step, 50.4 min
+step 13100: loss 0.19979 (out 0.00675, feat 0.19304), lr 6.39e-05, 0.22 s/step, 50.5 min
+step 13125: loss 0.19948 (out 0.00679, feat 0.19269), lr 6.38e-05, 0.22 s/step, 50.6 min
+step 13150: loss 0.20058 (out 0.00685, feat 0.19373), lr 6.37e-05, 0.22 s/step, 50.7 min
+step 13175: loss 0.19976 (out 0.00684, feat 0.19292), lr 6.35e-05, 0.38 s/step, 50.9 min
+step 13200: loss 0.20081 (out 0.00689, feat 0.19393), lr 6.34e-05, 0.22 s/step, 50.9 min
+step 13225: loss 0.20034 (out 0.00685, feat 0.19349), lr 6.33e-05, 0.22 s/step, 51.0 min
+step 13250: loss 0.20040 (out 0.00684, feat 0.19355), lr 6.32e-05, 0.22 s/step, 51.1 min
+eval 13250: val mae 0.08662 (blend 0.13345) | gate mae 0.10542 worst 0.14334 blend 0.16391 max_abs 5.1383
+step 13275: loss 0.20330 (out 0.00667, feat 0.19663), lr 6.31e-05, 0.22 s/step, 51.3 min
+step 13300: loss 0.19925 (out 0.00659, feat 0.19266), lr 6.30e-05, 0.22 s/step, 51.4 min
+step 13325: loss 0.20022 (out 0.00667, feat 0.19355), lr 6.29e-05, 0.22 s/step, 51.4 min
+step 13350: loss 0.19987 (out 0.00659, feat 0.19327), lr 6.27e-05, 0.22 s/step, 51.5 min
+step 13375: loss 0.19969 (out 0.00667, feat 0.19302), lr 6.26e-05, 0.22 s/step, 51.6 min
+step 13400: loss 0.19989 (out 0.00664, feat 0.19325), lr 6.25e-05, 0.22 s/step, 51.7 min
+step 13425: loss 0.19982 (out 0.00661, feat 0.19321), lr 6.24e-05, 0.22 s/step, 51.8 min
+step 13450: loss 0.19961 (out 0.00658, feat 0.19303), lr 6.23e-05, 0.22 s/step, 51.9 min
+step 13475: loss 0.19882 (out 0.00655, feat 0.19227), lr 6.22e-05, 0.22 s/step, 52.0 min
+step 13500: loss 0.19847 (out 0.00654, feat 0.19193), lr 6.20e-05, 0.22 s/step, 52.1 min
+eval 13500: val mae 0.08458 (blend 0.13022) | gate mae 0.10626 worst 0.14361 blend 0.16536 max_abs 5.1501 | best
+step 13525: loss 0.19678 (out 0.00654, feat 0.19024), lr 6.19e-05, 0.21 s/step, 52.2 min
+step 13550: loss 0.19850 (out 0.00656, feat 0.19194), lr 6.18e-05, 0.21 s/step, 52.3 min
+step 13575: loss 0.19821 (out 0.00652, feat 0.19169), lr 6.17e-05, 0.22 s/step, 52.4 min
+step 13600: loss 0.19804 (out 0.00646, feat 0.19158), lr 6.16e-05, 0.21 s/step, 52.5 min
+step 13625: loss 0.19745 (out 0.00644, feat 0.19101), lr 6.15e-05, 0.21 s/step, 52.6 min
+step 13650: loss 0.19786 (out 0.00644, feat 0.19142), lr 6.13e-05, 0.22 s/step, 52.7 min
+step 13675: loss 0.19691 (out 0.00641, feat 0.19050), lr 6.12e-05, 0.21 s/step, 52.8 min
+step 13700: loss 0.19667 (out 0.00643, feat 0.19024), lr 6.11e-05, 0.21 s/step, 52.9 min
+step 13725: loss 0.19657 (out 0.00643, feat 0.19013), lr 6.10e-05, 0.22 s/step, 52.9 min
+step 13750: loss 0.19656 (out 0.00642, feat 0.19015), lr 6.09e-05, 0.21 s/step, 53.0 min
+eval 13750: val mae 0.08649 (blend 0.13251) | gate mae 0.10554 worst 0.13811 blend 0.16274 max_abs 5.0103
+step 13775: loss 0.19562 (out 0.00665, feat 0.18897), lr 6.08e-05, 0.22 s/step, 53.2 min
+step 13800: loss 0.19559 (out 0.00687, feat 0.18871), lr 6.06e-05, 0.21 s/step, 53.3 min
+step 13825: loss 0.19278 (out 0.00668, feat 0.18611), lr 6.05e-05, 0.22 s/step, 53.3 min
+step 13850: loss 0.19281 (out 0.00663, feat 0.18617), lr 6.04e-05, 0.21 s/step, 53.4 min
+step 13875: loss 0.19293 (out 0.00659, feat 0.18634), lr 6.03e-05, 0.21 s/step, 53.5 min
+step 13900: loss 0.19318 (out 0.00658, feat 0.18660), lr 6.02e-05, 0.22 s/step, 53.6 min
+step 13925: loss 0.19369 (out 0.00650, feat 0.18719), lr 6.01e-05, 0.21 s/step, 53.7 min
+step 13950: loss 0.19347 (out 0.00650, feat 0.18697), lr 5.99e-05, 0.21 s/step, 53.8 min
+step 13975: loss 0.19375 (out 0.00653, feat 0.18721), lr 5.98e-05, 0.21 s/step, 53.9 min
+step 14000: loss 0.19423 (out 0.00653, feat 0.18770), lr 5.97e-05, 0.22 s/step, 54.0 min
+eval 14000: val mae 0.08433 (blend 0.12957) | gate mae 0.10441 worst 0.14131 blend 0.16218 max_abs 5.0708 | best
+step 14025: loss 0.19178 (out 0.00623, feat 0.18555), lr 5.96e-05, 0.21 s/step, 54.1 min
+step 14050: loss 0.19182 (out 0.00636, feat 0.18546), lr 5.95e-05, 0.22 s/step, 54.2 min
+step 14075: loss 0.18969 (out 0.00624, feat 0.18344), lr 5.94e-05, 0.22 s/step, 54.3 min
+step 14100: loss 0.19170 (out 0.00632, feat 0.18538), lr 5.92e-05, 0.21 s/step, 54.4 min
+step 14125: loss 0.19229 (out 0.00635, feat 0.18595), lr 5.91e-05, 0.21 s/step, 54.5 min
+step 14150: loss 0.19277 (out 0.00634, feat 0.18643), lr 5.90e-05, 0.22 s/step, 54.6 min
+step 14175: loss 0.19321 (out 0.00635, feat 0.18686), lr 5.89e-05, 0.22 s/step, 54.7 min
+step 14200: loss 0.19317 (out 0.00637, feat 0.18681), lr 5.88e-05, 0.21 s/step, 54.7 min
+step 14225: loss 0.19189 (out 0.00633, feat 0.18556), lr 5.86e-05, 0.21 s/step, 54.8 min
+step 14250: loss 0.19203 (out 0.00631, feat 0.18572), lr 5.85e-05, 0.22 s/step, 54.9 min
+eval 14250: val mae 0.08668 (blend 0.13297) | gate mae 0.10699 worst 0.14134 blend 0.16570 max_abs 5.2272
+step 14275: loss 0.18835 (out 0.00643, feat 0.18192), lr 5.84e-05, 0.21 s/step, 55.0 min
+step 14300: loss 0.18569 (out 0.00614, feat 0.17956), lr 5.83e-05, 0.21 s/step, 55.1 min
+step 14325: loss 0.18738 (out 0.00615, feat 0.18123), lr 5.82e-05, 0.22 s/step, 55.2 min
+step 14350: loss 0.18739 (out 0.00603, feat 0.18135), lr 5.81e-05, 0.21 s/step, 55.3 min
+step 14375: loss 0.18713 (out 0.00604, feat 0.18109), lr 5.79e-05, 0.21 s/step, 55.4 min
+step 14400: loss 0.18912 (out 0.00615, feat 0.18296), lr 5.78e-05, 0.21 s/step, 55.5 min
+step 14425: loss 0.18854 (out 0.00610, feat 0.18244), lr 5.77e-05, 0.22 s/step, 55.6 min
+step 14450: loss 0.18891 (out 0.00610, feat 0.18281), lr 5.76e-05, 0.21 s/step, 55.7 min
+step 14475: loss 0.18879 (out 0.00609, feat 0.18270), lr 5.75e-05, 0.22 s/step, 55.8 min
+step 14500: loss 0.18892 (out 0.00611, feat 0.18281), lr 5.74e-05, 0.39 s/step, 55.9 min
+eval 14500: val mae 0.08392 (blend 0.12837) | gate mae 0.10389 worst 0.13924 blend 0.16000 max_abs 5.2005 | best
+step 14525: loss 0.18506 (out 0.00629, feat 0.17877), lr 5.72e-05, 0.21 s/step, 56.1 min
+step 14550: loss 0.18551 (out 0.00616, feat 0.17935), lr 5.71e-05, 0.21 s/step, 56.2 min
+step 14575: loss 0.18766 (out 0.00625, feat 0.18140), lr 5.70e-05, 0.21 s/step, 56.2 min
+step 14600: loss 0.18957 (out 0.00632, feat 0.18324), lr 5.69e-05, 0.22 s/step, 56.3 min
+step 14625: loss 0.18986 (out 0.00631, feat 0.18355), lr 5.68e-05, 0.21 s/step, 56.4 min
+step 14650: loss 0.19042 (out 0.00632, feat 0.18410), lr 5.66e-05, 0.21 s/step, 56.5 min
+step 14675: loss 0.19033 (out 0.00629, feat 0.18404), lr 5.65e-05, 0.22 s/step, 56.6 min
+step 14700: loss 0.19014 (out 0.00627, feat 0.18387), lr 5.64e-05, 0.21 s/step, 56.7 min
+step 14725: loss 0.18972 (out 0.00623, feat 0.18349), lr 5.63e-05, 0.21 s/step, 56.8 min
+step 14750: loss 0.18986 (out 0.00623, feat 0.18362), lr 5.62e-05, 0.22 s/step, 56.9 min
+eval 14750: val mae 0.08600 (blend 0.13193) | gate mae 0.10547 worst 0.14302 blend 0.16261 max_abs 5.1674
+step 14775: loss 0.18351 (out 0.00615, feat 0.17736), lr 5.61e-05, 0.21 s/step, 57.0 min
+step 14800: loss 0.18280 (out 0.00591, feat 0.17690), lr 5.59e-05, 0.21 s/step, 57.1 min
+step 14825: loss 0.18180 (out 0.00599, feat 0.17582), lr 5.58e-05, 0.21 s/step, 57.2 min
+step 14850: loss 0.18321 (out 0.00597, feat 0.17724), lr 5.57e-05, 0.22 s/step, 57.3 min
+step 14875: loss 0.18389 (out 0.00595, feat 0.17794), lr 5.56e-05, 0.21 s/step, 57.4 min
+step 14900: loss 0.18527 (out 0.00599, feat 0.17928), lr 5.55e-05, 0.21 s/step, 57.4 min
+step 14925: loss 0.18553 (out 0.00597, feat 0.17956), lr 5.54e-05, 0.22 s/step, 57.5 min
+step 14950: loss 0.18557 (out 0.00598, feat 0.17959), lr 5.52e-05, 0.21 s/step, 57.6 min
+step 14975: loss 0.18626 (out 0.00606, feat 0.18020), lr 5.51e-05, 0.22 s/step, 57.7 min
+step 15000: loss 0.18607 (out 0.00609, feat 0.17998), lr 5.50e-05, 0.21 s/step, 57.8 min
+eval 15000: val mae 0.08550 (blend 0.12995) | gate mae 0.10494 worst 0.13842 blend 0.16113 max_abs 5.2496
+step 15025: loss 0.18240 (out 0.00574, feat 0.17665), lr 5.49e-05, 0.22 s/step, 57.9 min
+step 15050: loss 0.18120 (out 0.00590, feat 0.17530), lr 5.48e-05, 0.21 s/step, 58.0 min
+step 15075: loss 0.18240 (out 0.00593, feat 0.17647), lr 5.46e-05, 0.21 s/step, 58.1 min
+step 15100: loss 0.18475 (out 0.00608, feat 0.17867), lr 5.45e-05, 0.22 s/step, 58.2 min
+step 15125: loss 0.18509 (out 0.00617, feat 0.17892), lr 5.44e-05, 0.22 s/step, 58.3 min
+step 15150: loss 0.18436 (out 0.00612, feat 0.17823), lr 5.43e-05, 0.21 s/step, 58.4 min
+step 15175: loss 0.18491 (out 0.00616, feat 0.17875), lr 5.42e-05, 0.21 s/step, 58.5 min
+step 15200: loss 0.18457 (out 0.00615, feat 0.17842), lr 5.41e-05, 0.22 s/step, 58.6 min
+step 15225: loss 0.18420 (out 0.00617, feat 0.17803), lr 5.39e-05, 0.21 s/step, 58.7 min
+step 15250: loss 0.18389 (out 0.00613, feat 0.17776), lr 5.38e-05, 0.21 s/step, 58.7 min
+eval 15250: val mae 0.08432 (blend 0.13002) | gate mae 0.10520 worst 0.13966 blend 0.16321 max_abs 5.1378
+step 15275: loss 0.18257 (out 0.00584, feat 0.17673), lr 5.37e-05, 0.22 s/step, 58.9 min
+step 15300: loss 0.18287 (out 0.00599, feat 0.17689), lr 5.36e-05, 0.21 s/step, 59.0 min
+step 15325: loss 0.18377 (out 0.00599, feat 0.17778), lr 5.35e-05, 0.21 s/step, 59.0 min
+step 15350: loss 0.18192 (out 0.00596, feat 0.17596), lr 5.34e-05, 0.21 s/step, 59.1 min
+step 15375: loss 0.18175 (out 0.00601, feat 0.17573), lr 5.32e-05, 0.22 s/step, 59.2 min
+step 15400: loss 0.18326 (out 0.00606, feat 0.17720), lr 5.31e-05, 0.22 s/step, 59.3 min
+step 15425: loss 0.18308 (out 0.00604, feat 0.17704), lr 5.30e-05, 0.23 s/step, 59.4 min
+step 15450: loss 0.18247 (out 0.00600, feat 0.17647), lr 5.29e-05, 0.24 s/step, 59.5 min
+step 15475: loss 0.18175 (out 0.00595, feat 0.17580), lr 5.28e-05, 0.23 s/step, 59.6 min
+step 15500: loss 0.18082 (out 0.00589, feat 0.17494), lr 5.26e-05, 0.23 s/step, 59.7 min
+eval 15500: val mae 0.08462 (blend 0.13066) | gate mae 0.10446 worst 0.13890 blend 0.16216 max_abs 5.1424
+step 15525: loss 0.18063 (out 0.00568, feat 0.17495), lr 5.25e-05, 0.24 s/step, 59.9 min
+step 15550: loss 0.17808 (out 0.00552, feat 0.17257), lr 5.24e-05, 0.23 s/step, 60.0 min
+step 15575: loss 0.17832 (out 0.00556, feat 0.17276), lr 5.23e-05, 0.23 s/step, 60.0 min
+step 15600: loss 0.17937 (out 0.00571, feat 0.17366), lr 5.22e-05, 0.24 s/step, 60.1 min
+step 15625: loss 0.17892 (out 0.00574, feat 0.17317), lr 5.21e-05, 0.24 s/step, 60.2 min
+step 15650: loss 0.17938 (out 0.00580, feat 0.17359), lr 5.19e-05, 0.24 s/step, 60.3 min
+step 15675: loss 0.17985 (out 0.00580, feat 0.17405), lr 5.18e-05, 0.23 s/step, 60.4 min
+step 15700: loss 0.18028 (out 0.00583, feat 0.17446), lr 5.17e-05, 0.24 s/step, 60.5 min
+step 15725: loss 0.17976 (out 0.00582, feat 0.17394), lr 5.16e-05, 0.23 s/step, 60.6 min
+step 15750: loss 0.18058 (out 0.00587, feat 0.17471), lr 5.15e-05, 0.23 s/step, 60.7 min
+eval 15750: val mae 0.08242 (blend 0.12654) | gate mae 0.10256 worst 0.13403 blend 0.15888 max_abs 5.1597 | best
+step 15775: loss 0.17211 (out 0.00588, feat 0.16623), lr 5.14e-05, 0.41 s/step, 61.0 min
+step 15800: loss 0.17404 (out 0.00587, feat 0.16818), lr 5.12e-05, 0.22 s/step, 61.1 min
+step 15825: loss 0.17599 (out 0.00578, feat 0.17021), lr 5.11e-05, 0.21 s/step, 61.2 min
+step 15850: loss 0.17734 (out 0.00575, feat 0.17159), lr 5.10e-05, 0.22 s/step, 61.2 min
+step 15875: loss 0.17724 (out 0.00576, feat 0.17148), lr 5.09e-05, 0.22 s/step, 61.3 min
+step 15900: loss 0.17780 (out 0.00576, feat 0.17204), lr 5.08e-05, 0.21 s/step, 61.4 min
+step 15925: loss 0.17828 (out 0.00577, feat 0.17252), lr 5.06e-05, 0.21 s/step, 61.5 min
+step 15950: loss 0.17831 (out 0.00582, feat 0.17249), lr 5.05e-05, 0.22 s/step, 61.6 min
+step 15975: loss 0.17837 (out 0.00582, feat 0.17254), lr 5.04e-05, 0.21 s/step, 61.7 min
+step 16000: loss 0.17853 (out 0.00582, feat 0.17270), lr 5.03e-05, 0.21 s/step, 61.8 min
+eval 16000: val mae 0.08512 (blend 0.13151) | gate mae 0.10536 worst 0.14238 blend 0.16343 max_abs 5.1626
+step 16025: loss 0.17645 (out 0.00572, feat 0.17073), lr 5.02e-05, 0.21 s/step, 61.9 min
+step 16050: loss 0.17743 (out 0.00574, feat 0.17169), lr 5.01e-05, 0.22 s/step, 62.0 min
+step 16075: loss 0.17771 (out 0.00571, feat 0.17199), lr 4.99e-05, 0.21 s/step, 62.1 min
+step 16100: loss 0.17749 (out 0.00578, feat 0.17171), lr 4.98e-05, 0.21 s/step, 62.2 min
+step 16125: loss 0.17755 (out 0.00579, feat 0.17176), lr 4.97e-05, 0.22 s/step, 62.3 min
+step 16150: loss 0.17847 (out 0.00580, feat 0.17266), lr 4.96e-05, 0.21 s/step, 62.3 min
+step 16175: loss 0.17770 (out 0.00579, feat 0.17191), lr 4.95e-05, 0.21 s/step, 62.4 min
+step 16200: loss 0.17819 (out 0.00577, feat 0.17241), lr 4.94e-05, 0.21 s/step, 62.5 min
+step 16225: loss 0.17804 (out 0.00576, feat 0.17228), lr 4.92e-05, 0.22 s/step, 62.6 min
+step 16250: loss 0.17779 (out 0.00572, feat 0.17207), lr 4.91e-05, 0.21 s/step, 62.7 min
+eval 16250: val mae 0.08375 (blend 0.12797) | gate mae 0.10449 worst 0.13874 blend 0.16129 max_abs 5.1729
+step 16275: loss 0.17782 (out 0.00595, feat 0.17187), lr 4.90e-05, 0.21 s/step, 62.8 min
+step 16300: loss 0.17453 (out 0.00566, feat 0.16887), lr 4.89e-05, 0.22 s/step, 62.9 min
+step 16325: loss 0.17445 (out 0.00563, feat 0.16882), lr 4.88e-05, 0.22 s/step, 63.0 min
+step 16350: loss 0.17486 (out 0.00563, feat 0.16923), lr 4.87e-05, 0.21 s/step, 63.1 min
+step 16375: loss 0.17496 (out 0.00565, feat 0.16930), lr 4.85e-05, 0.22 s/step, 63.2 min
+step 16400: loss 0.17497 (out 0.00564, feat 0.16933), lr 4.84e-05, 0.21 s/step, 63.3 min
+step 16425: loss 0.17552 (out 0.00564, feat 0.16988), lr 4.83e-05, 0.21 s/step, 63.4 min
+step 16450: loss 0.17567 (out 0.00564, feat 0.17003), lr 4.82e-05, 0.21 s/step, 63.5 min
+step 16475: loss 0.17519 (out 0.00562, feat 0.16957), lr 4.81e-05, 0.22 s/step, 63.5 min
+step 16500: loss 0.17501 (out 0.00561, feat 0.16940), lr 4.80e-05, 0.21 s/step, 63.6 min
+eval 16500: val mae 0.08487 (blend 0.13092) | gate mae 0.10432 worst 0.13651 blend 0.16150 max_abs 4.9604
+step 16525: loss 0.17402 (out 0.00599, feat 0.16803), lr 4.78e-05, 0.21 s/step, 63.8 min
+step 16550: loss 0.17257 (out 0.00569, feat 0.16688), lr 4.77e-05, 0.22 s/step, 63.9 min
+step 16575: loss 0.17493 (out 0.00577, feat 0.16916), lr 4.76e-05, 0.21 s/step, 63.9 min
+step 16600: loss 0.17518 (out 0.00577, feat 0.16941), lr 4.75e-05, 0.22 s/step, 64.0 min
+step 16625: loss 0.17446 (out 0.00580, feat 0.16866), lr 4.74e-05, 0.23 s/step, 64.1 min
+step 16650: loss 0.17407 (out 0.00573, feat 0.16834), lr 4.73e-05, 0.24 s/step, 64.2 min
+step 16675: loss 0.17412 (out 0.00572, feat 0.16840), lr 4.71e-05, 0.23 s/step, 64.3 min
+step 16700: loss 0.17384 (out 0.00572, feat 0.16812), lr 4.70e-05, 0.24 s/step, 64.4 min
+step 16725: loss 0.17411 (out 0.00574, feat 0.16836), lr 4.69e-05, 0.24 s/step, 64.5 min
+step 16750: loss 0.17409 (out 0.00574, feat 0.16835), lr 4.68e-05, 0.23 s/step, 64.6 min
+eval 16750: val mae 0.08301 (blend 0.12737) | gate mae 0.10321 worst 0.14004 blend 0.15934 max_abs 5.0491
+step 16775: loss 0.17357 (out 0.00607, feat 0.16750), lr 4.67e-05, 0.23 s/step, 64.8 min
+step 16800: loss 0.17640 (out 0.00594, feat 0.17046), lr 4.66e-05, 0.24 s/step, 64.9 min
+step 16825: loss 0.17485 (out 0.00580, feat 0.16904), lr 4.65e-05, 0.23 s/step, 65.0 min
+step 16850: loss 0.17391 (out 0.00573, feat 0.16818), lr 4.63e-05, 0.21 s/step, 65.1 min
+step 16875: loss 0.17280 (out 0.00562, feat 0.16718), lr 4.62e-05, 0.21 s/step, 65.1 min
+step 16900: loss 0.17294 (out 0.00558, feat 0.16736), lr 4.61e-05, 0.22 s/step, 65.2 min
+step 16925: loss 0.17297 (out 0.00560, feat 0.16737), lr 4.60e-05, 0.21 s/step, 65.3 min
+step 16950: loss 0.17227 (out 0.00556, feat 0.16672), lr 4.59e-05, 0.21 s/step, 65.4 min
+step 16975: loss 0.17164 (out 0.00553, feat 0.16612), lr 4.58e-05, 0.21 s/step, 65.5 min
+step 17000: loss 0.17167 (out 0.00552, feat 0.16615), lr 4.56e-05, 0.22 s/step, 65.6 min
+eval 17000: val mae 0.07912 (blend 0.12141) | gate mae 0.10186 worst 0.13676 blend 0.15791 max_abs 5.1767 | best
+step 17025: loss 0.17233 (out 0.00555, feat 0.16678), lr 4.55e-05, 0.21 s/step, 65.7 min
+step 17050: loss 0.17090 (out 0.00534, feat 0.16556), lr 4.54e-05, 0.21 s/step, 65.8 min
+step 17075: loss 0.17094 (out 0.00529, feat 0.16565), lr 4.53e-05, 0.22 s/step, 65.9 min
+step 17100: loss 0.17147 (out 0.00536, feat 0.16610), lr 4.52e-05, 0.38 s/step, 66.1 min
+step 17125: loss 0.17060 (out 0.00534, feat 0.16526), lr 4.51e-05, 0.22 s/step, 66.2 min
+step 17150: loss 0.17132 (out 0.00545, feat 0.16588), lr 4.50e-05, 0.22 s/step, 66.3 min
+step 17175: loss 0.17121 (out 0.00544, feat 0.16576), lr 4.48e-05, 0.21 s/step, 66.3 min
+step 17200: loss 0.17073 (out 0.00542, feat 0.16531), lr 4.47e-05, 0.21 s/step, 66.4 min
+step 17225: loss 0.17075 (out 0.00541, feat 0.16534), lr 4.46e-05, 0.21 s/step, 66.5 min
+step 17250: loss 0.17049 (out 0.00539, feat 0.16510), lr 4.45e-05, 0.22 s/step, 66.6 min
+eval 17250: val mae 0.08228 (blend 0.12687) | gate mae 0.10286 worst 0.13449 blend 0.15988 max_abs 4.7213
+step 17275: loss 0.17521 (out 0.00554, feat 0.16967), lr 4.44e-05, 0.21 s/step, 66.7 min
+step 17300: loss 0.17038 (out 0.00545, feat 0.16494), lr 4.43e-05, 0.21 s/step, 66.8 min
+step 17325: loss 0.17029 (out 0.00543, feat 0.16485), lr 4.42e-05, 0.22 s/step, 66.9 min
+step 17350: loss 0.17035 (out 0.00539, feat 0.16496), lr 4.40e-05, 0.21 s/step, 67.0 min
+step 17375: loss 0.17013 (out 0.00533, feat 0.16479), lr 4.39e-05, 0.21 s/step, 67.1 min
+step 17400: loss 0.16955 (out 0.00530, feat 0.16425), lr 4.38e-05, 0.24 s/step, 67.2 min
+step 17425: loss 0.16909 (out 0.00530, feat 0.16379), lr 4.37e-05, 0.23 s/step, 67.3 min
+step 17450: loss 0.16745 (out 0.00525, feat 0.16220), lr 4.36e-05, 0.24 s/step, 67.4 min
+step 17475: loss 0.16768 (out 0.00523, feat 0.16245), lr 4.35e-05, 0.23 s/step, 67.5 min
+step 17500: loss 0.16781 (out 0.00527, feat 0.16254), lr 4.34e-05, 0.24 s/step, 67.6 min
+eval 17500: val mae 0.08548 (blend 0.13173) | gate mae 0.10274 worst 0.13879 blend 0.15868 max_abs 4.6035
+step 17525: loss 0.17404 (out 0.00570, feat 0.16834), lr 4.32e-05, 0.23 s/step, 67.7 min
+step 17550: loss 0.16841 (out 0.00544, feat 0.16297), lr 4.31e-05, 0.23 s/step, 67.8 min
+step 17575: loss 0.16848 (out 0.00551, feat 0.16297), lr 4.30e-05, 0.24 s/step, 67.9 min
+step 17600: loss 0.16686 (out 0.00543, feat 0.16143), lr 4.29e-05, 0.23 s/step, 68.0 min
+step 17625: loss 0.16759 (out 0.00542, feat 0.16217), lr 4.28e-05, 0.23 s/step, 68.1 min
+step 17650: loss 0.16775 (out 0.00545, feat 0.16230), lr 4.27e-05, 0.23 s/step, 68.2 min
+step 17675: loss 0.16733 (out 0.00542, feat 0.16191), lr 4.26e-05, 0.24 s/step, 68.3 min
+step 17700: loss 0.16764 (out 0.00546, feat 0.16218), lr 4.24e-05, 0.23 s/step, 68.4 min
+step 17725: loss 0.16750 (out 0.00543, feat 0.16207), lr 4.23e-05, 0.23 s/step, 68.5 min
+step 17750: loss 0.16732 (out 0.00542, feat 0.16190), lr 4.22e-05, 0.24 s/step, 68.6 min
+eval 17750: val mae 0.08382 (blend 0.12930) | gate mae 0.10405 worst 0.13873 blend 0.16143 max_abs 4.9969
+step 17775: loss 0.16455 (out 0.00531, feat 0.15924), lr 4.21e-05, 0.24 s/step, 68.8 min
+step 17800: loss 0.16475 (out 0.00534, feat 0.15941), lr 4.20e-05, 0.23 s/step, 68.8 min
+step 17825: loss 0.16548 (out 0.00543, feat 0.16005), lr 4.19e-05, 0.23 s/step, 68.9 min
+step 17850: loss 0.16547 (out 0.00533, feat 0.16014), lr 4.18e-05, 0.24 s/step, 69.0 min
+step 17875: loss 0.16553 (out 0.00528, feat 0.16025), lr 4.17e-05, 0.23 s/step, 69.1 min
+step 17900: loss 0.16513 (out 0.00525, feat 0.15988), lr 4.15e-05, 0.24 s/step, 69.2 min
+step 17925: loss 0.16562 (out 0.00526, feat 0.16036), lr 4.14e-05, 0.24 s/step, 69.3 min
+step 17950: loss 0.16640 (out 0.00527, feat 0.16112), lr 4.13e-05, 0.24 s/step, 69.4 min
+step 17975: loss 0.16646 (out 0.00530, feat 0.16116), lr 4.12e-05, 0.23 s/step, 69.5 min
+step 18000: loss 0.16618 (out 0.00531, feat 0.16088), lr 4.11e-05, 0.24 s/step, 69.6 min
+eval 18000: val mae 0.08116 (blend 0.12513) | gate mae 0.10237 worst 0.13451 blend 0.15906 max_abs 5.0166
+step 18025: loss 0.16689 (out 0.00514, feat 0.16174), lr 4.10e-05, 0.23 s/step, 69.8 min
+step 18050: loss 0.16354 (out 0.00511, feat 0.15843), lr 4.09e-05, 0.24 s/step, 69.9 min
+step 18075: loss 0.16265 (out 0.00515, feat 0.15749), lr 4.08e-05, 0.24 s/step, 70.0 min
+step 18100: loss 0.16306 (out 0.00508, feat 0.15798), lr 4.06e-05, 0.24 s/step, 70.1 min
+step 18125: loss 0.16411 (out 0.00512, feat 0.15899), lr 4.05e-05, 0.24 s/step, 70.2 min
+step 18150: loss 0.16394 (out 0.00512, feat 0.15882), lr 4.04e-05, 0.24 s/step, 70.3 min
+step 18175: loss 0.16402 (out 0.00512, feat 0.15890), lr 4.03e-05, 0.25 s/step, 70.4 min
+step 18200: loss 0.16361 (out 0.00510, feat 0.15851), lr 4.02e-05, 0.24 s/step, 70.5 min
+step 18225: loss 0.16350 (out 0.00507, feat 0.15843), lr 4.01e-05, 0.25 s/step, 70.6 min
+step 18250: loss 0.16325 (out 0.00505, feat 0.15819), lr 4.00e-05, 0.24 s/step, 70.7 min
+eval 18250: val mae 0.08369 (blend 0.12914) | gate mae 0.10214 worst 0.14317 blend 0.15839 max_abs 4.8921
+step 18275: loss 0.16509 (out 0.00509, feat 0.16000), lr 3.99e-05, 0.25 s/step, 70.8 min
+step 18300: loss 0.16395 (out 0.00514, feat 0.15881), lr 3.98e-05, 0.24 s/step, 70.9 min
+step 18325: loss 0.16382 (out 0.00511, feat 0.15871), lr 3.96e-05, 0.24 s/step, 71.0 min
+step 18350: loss 0.16227 (out 0.00506, feat 0.15721), lr 3.95e-05, 0.41 s/step, 71.2 min
+step 18375: loss 0.16204 (out 0.00512, feat 0.15692), lr 3.94e-05, 0.24 s/step, 71.3 min
+step 18400: loss 0.16211 (out 0.00510, feat 0.15701), lr 3.93e-05, 0.23 s/step, 71.4 min
+step 18425: loss 0.16197 (out 0.00508, feat 0.15689), lr 3.92e-05, 0.22 s/step, 71.5 min
+step 18450: loss 0.16184 (out 0.00505, feat 0.15679), lr 3.91e-05, 0.22 s/step, 71.6 min
+step 18475: loss 0.16135 (out 0.00502, feat 0.15633), lr 3.90e-05, 0.22 s/step, 71.7 min
+step 18500: loss 0.16145 (out 0.00502, feat 0.15643), lr 3.89e-05, 0.22 s/step, 71.8 min
+eval 18500: val mae 0.08067 (blend 0.12414) | gate mae 0.10112 worst 0.13051 blend 0.15732 max_abs 5.0412
+step 18525: loss 0.16012 (out 0.00480, feat 0.15532), lr 3.88e-05, 0.22 s/step, 71.9 min
+step 18550: loss 0.15953 (out 0.00488, feat 0.15465), lr 3.87e-05, 0.22 s/step, 72.0 min
+step 18575: loss 0.15992 (out 0.00490, feat 0.15501), lr 3.85e-05, 0.22 s/step, 72.1 min
+step 18600: loss 0.15800 (out 0.00481, feat 0.15319), lr 3.84e-05, 0.22 s/step, 72.2 min
+step 18625: loss 0.15774 (out 0.00485, feat 0.15289), lr 3.83e-05, 0.22 s/step, 72.3 min
+step 18650: loss 0.15796 (out 0.00486, feat 0.15310), lr 3.82e-05, 0.22 s/step, 72.3 min
+step 18675: loss 0.15740 (out 0.00480, feat 0.15261), lr 3.81e-05, 0.22 s/step, 72.4 min
+step 18700: loss 0.15746 (out 0.00483, feat 0.15263), lr 3.80e-05, 0.22 s/step, 72.5 min
+step 18725: loss 0.15796 (out 0.00488, feat 0.15308), lr 3.79e-05, 0.22 s/step, 72.6 min
+step 18750: loss 0.15769 (out 0.00490, feat 0.15278), lr 3.78e-05, 0.22 s/step, 72.7 min
+eval 18750: val mae 0.08199 (blend 0.12629) | gate mae 0.10261 worst 0.13968 blend 0.15988 max_abs 5.0474
+step 18775: loss 0.15831 (out 0.00478, feat 0.15353), lr 3.77e-05, 0.22 s/step, 72.8 min
+step 18800: loss 0.15725 (out 0.00472, feat 0.15253), lr 3.76e-05, 0.22 s/step, 72.9 min
+step 18825: loss 0.15797 (out 0.00477, feat 0.15320), lr 3.75e-05, 0.22 s/step, 73.0 min
+step 18850: loss 0.15800 (out 0.00483, feat 0.15317), lr 3.73e-05, 0.22 s/step, 73.1 min
+step 18875: loss 0.15822 (out 0.00486, feat 0.15336), lr 3.72e-05, 0.22 s/step, 73.2 min
+step 18900: loss 0.15850 (out 0.00486, feat 0.15364), lr 3.71e-05, 0.22 s/step, 73.3 min
+step 18925: loss 0.15816 (out 0.00487, feat 0.15328), lr 3.70e-05, 0.22 s/step, 73.4 min
+step 18950: loss 0.15739 (out 0.00484, feat 0.15255), lr 3.69e-05, 0.22 s/step, 73.5 min
+step 18975: loss 0.15780 (out 0.00487, feat 0.15293), lr 3.68e-05, 0.22 s/step, 73.6 min
+step 19000: loss 0.15772 (out 0.00488, feat 0.15283), lr 3.67e-05, 0.22 s/step, 73.7 min
+eval 19000: val mae 0.08188 (blend 0.12626) | gate mae 0.10082 worst 0.13487 blend 0.15651 max_abs 4.8226
+step 19025: loss 0.15274 (out 0.00482, feat 0.14792), lr 3.66e-05, 0.22 s/step, 73.8 min
+step 19050: loss 0.15498 (out 0.00497, feat 0.15001), lr 3.65e-05, 0.22 s/step, 73.9 min
+step 19075: loss 0.15615 (out 0.00504, feat 0.15111), lr 3.64e-05, 0.22 s/step, 74.0 min
+step 19100: loss 0.15454 (out 0.00491, feat 0.14963), lr 3.63e-05, 0.22 s/step, 74.1 min
+step 19125: loss 0.15444 (out 0.00486, feat 0.14958), lr 3.62e-05, 0.23 s/step, 74.2 min
+step 19150: loss 0.15369 (out 0.00483, feat 0.14886), lr 3.61e-05, 0.22 s/step, 74.2 min
+step 19175: loss 0.15449 (out 0.00485, feat 0.14964), lr 3.59e-05, 0.22 s/step, 74.3 min
+step 19200: loss 0.15521 (out 0.00487, feat 0.15035), lr 3.58e-05, 0.22 s/step, 74.4 min
+step 19225: loss 0.15485 (out 0.00486, feat 0.15000), lr 3.57e-05, 0.23 s/step, 74.5 min
+step 19250: loss 0.15449 (out 0.00484, feat 0.14964), lr 3.56e-05, 0.22 s/step, 74.6 min
+eval 19250: val mae 0.08072 (blend 0.12458) | gate mae 0.10114 worst 0.13171 blend 0.15706 max_abs 4.8276
+step 19275: loss 0.16019 (out 0.00500, feat 0.15519), lr 3.55e-05, 0.22 s/step, 74.7 min
+step 19300: loss 0.15771 (out 0.00507, feat 0.15264), lr 3.54e-05, 0.22 s/step, 74.8 min
+step 19325: loss 0.15660 (out 0.00500, feat 0.15160), lr 3.53e-05, 0.22 s/step, 74.9 min
+step 19350: loss 0.15689 (out 0.00494, feat 0.15195), lr 3.52e-05, 0.22 s/step, 75.0 min
+step 19375: loss 0.15577 (out 0.00489, feat 0.15088), lr 3.51e-05, 0.22 s/step, 75.1 min
+step 19400: loss 0.15590 (out 0.00489, feat 0.15101), lr 3.50e-05, 0.22 s/step, 75.2 min
+step 19425: loss 0.15539 (out 0.00486, feat 0.15053), lr 3.49e-05, 0.22 s/step, 75.3 min
+step 19450: loss 0.15506 (out 0.00486, feat 0.15020), lr 3.48e-05, 0.22 s/step, 75.4 min
+step 19475: loss 0.15489 (out 0.00485, feat 0.15003), lr 3.47e-05, 0.23 s/step, 75.5 min
+step 19500: loss 0.15481 (out 0.00484, feat 0.14997), lr 3.46e-05, 0.23 s/step, 75.6 min
+eval 19500: val mae 0.08087 (blend 0.12489) | gate mae 0.10115 worst 0.13391 blend 0.15769 max_abs 4.9026
+step 19525: loss 0.15466 (out 0.00499, feat 0.14967), lr 3.45e-05, 0.22 s/step, 75.7 min
+step 19550: loss 0.15405 (out 0.00476, feat 0.14928), lr 3.44e-05, 0.23 s/step, 75.8 min
+step 19575: loss 0.15458 (out 0.00473, feat 0.14985), lr 3.43e-05, 0.22 s/step, 75.9 min
+step 19600: loss 0.15410 (out 0.00474, feat 0.14937), lr 3.42e-05, 0.22 s/step, 76.0 min
+step 19625: loss 0.15335 (out 0.00472, feat 0.14862), lr 3.40e-05, 0.22 s/step, 76.1 min
+step 19650: loss 0.15398 (out 0.00473, feat 0.14925), lr 3.39e-05, 0.39 s/step, 76.2 min
+step 19675: loss 0.15366 (out 0.00474, feat 0.14892), lr 3.38e-05, 0.22 s/step, 76.3 min
+step 19700: loss 0.15423 (out 0.00477, feat 0.14946), lr 3.37e-05, 0.22 s/step, 76.4 min
+step 19725: loss 0.15407 (out 0.00476, feat 0.14931), lr 3.36e-05, 0.23 s/step, 76.5 min
+step 19750: loss 0.15360 (out 0.00476, feat 0.14884), lr 3.35e-05, 0.22 s/step, 76.6 min
+eval 19750: val mae 0.08276 (blend 0.12770) | gate mae 0.10181 worst 0.13934 blend 0.15811 max_abs 4.7989
+step 19775: loss 0.15807 (out 0.00495, feat 0.15311), lr 3.34e-05, 0.22 s/step, 76.7 min
+step 19800: loss 0.15752 (out 0.00490, feat 0.15262), lr 3.33e-05, 0.22 s/step, 76.8 min
+step 19825: loss 0.15613 (out 0.00481, feat 0.15131), lr 3.32e-05, 0.22 s/step, 76.9 min
+step 19850: loss 0.15571 (out 0.00481, feat 0.15090), lr 3.31e-05, 0.22 s/step, 77.0 min
+step 19875: loss 0.15480 (out 0.00483, feat 0.14997), lr 3.30e-05, 0.22 s/step, 77.1 min
+step 19900: loss 0.15444 (out 0.00482, feat 0.14962), lr 3.29e-05, 0.22 s/step, 77.2 min
+step 19925: loss 0.15408 (out 0.00481, feat 0.14927), lr 3.28e-05, 0.22 s/step, 77.3 min
+step 19950: loss 0.15331 (out 0.00476, feat 0.14855), lr 3.27e-05, 0.22 s/step, 77.4 min
+step 19975: loss 0.15351 (out 0.00477, feat 0.14874), lr 3.26e-05, 0.22 s/step, 77.5 min
+step 20000: loss 0.15331 (out 0.00475, feat 0.14856), lr 3.25e-05, 0.22 s/step, 77.6 min
+eval 20000: val mae 0.08052 (blend 0.12403) | gate mae 0.10119 worst 0.13291 blend 0.15735 max_abs 4.9921
+step 20025: loss 0.15233 (out 0.00469, feat 0.14764), lr 3.24e-05, 0.22 s/step, 77.7 min
+step 20050: loss 0.15346 (out 0.00463, feat 0.14884), lr 3.23e-05, 0.22 s/step, 77.8 min
+step 20075: loss 0.15125 (out 0.00458, feat 0.14667), lr 3.22e-05, 0.22 s/step, 77.9 min
+step 20100: loss 0.15147 (out 0.00453, feat 0.14694), lr 3.21e-05, 0.22 s/step, 78.0 min
+step 20125: loss 0.15022 (out 0.00450, feat 0.14571), lr 3.20e-05, 0.22 s/step, 78.1 min
+step 20150: loss 0.14956 (out 0.00451, feat 0.14504), lr 3.19e-05, 0.22 s/step, 78.2 min
+step 20175: loss 0.15026 (out 0.00454, feat 0.14572), lr 3.18e-05, 0.22 s/step, 78.2 min
+step 20200: loss 0.15115 (out 0.00459, feat 0.14656), lr 3.17e-05, 0.22 s/step, 78.3 min
+step 20225: loss 0.15078 (out 0.00458, feat 0.14620), lr 3.16e-05, 0.22 s/step, 78.4 min
+step 20250: loss 0.15071 (out 0.00458, feat 0.14613), lr 3.15e-05, 0.22 s/step, 78.5 min
+eval 20250: val mae 0.08160 (blend 0.12586) | gate mae 0.10244 worst 0.13957 blend 0.15941 max_abs 4.9904
+step 20275: loss 0.15262 (out 0.00439, feat 0.14824), lr 3.14e-05, 0.22 s/step, 78.7 min
+step 20300: loss 0.15069 (out 0.00441, feat 0.14628), lr 3.13e-05, 0.22 s/step, 78.7 min
+step 20325: loss 0.15056 (out 0.00439, feat 0.14617), lr 3.12e-05, 0.23 s/step, 78.8 min
+step 20350: loss 0.15007 (out 0.00448, feat 0.14558), lr 3.11e-05, 0.27 s/step, 79.0 min
+step 20375: loss 0.15051 (out 0.00451, feat 0.14600), lr 3.10e-05, 0.22 s/step, 79.0 min
+step 20400: loss 0.15096 (out 0.00452, feat 0.14644), lr 3.09e-05, 0.23 s/step, 79.1 min
+step 20425: loss 0.15202 (out 0.00455, feat 0.14747), lr 3.08e-05, 0.22 s/step, 79.2 min
+step 20450: loss 0.15140 (out 0.00456, feat 0.14684), lr 3.07e-05, 0.22 s/step, 79.3 min
+step 20475: loss 0.15070 (out 0.00456, feat 0.14614), lr 3.06e-05, 0.21 s/step, 79.4 min
+step 20500: loss 0.15008 (out 0.00455, feat 0.14553), lr 3.05e-05, 0.22 s/step, 79.5 min
+eval 20500: val mae 0.08027 (blend 0.12382) | gate mae 0.10180 worst 0.13302 blend 0.15799 max_abs 4.9848
+step 20525: loss 0.14476 (out 0.00429, feat 0.14047), lr 3.04e-05, 0.21 s/step, 79.6 min
+step 20550: loss 0.14848 (out 0.00435, feat 0.14413), lr 3.03e-05, 0.22 s/step, 79.7 min
+step 20575: loss 0.14882 (out 0.00437, feat 0.14445), lr 3.02e-05, 0.23 s/step, 79.8 min
+step 20600: loss 0.14888 (out 0.00439, feat 0.14449), lr 3.01e-05, 0.21 s/step, 79.9 min
+step 20625: loss 0.14960 (out 0.00442, feat 0.14518), lr 3.00e-05, 0.21 s/step, 80.0 min
+step 20650: loss 0.14957 (out 0.00444, feat 0.14513), lr 2.99e-05, 0.21 s/step, 80.1 min
+step 20675: loss 0.14926 (out 0.00450, feat 0.14476), lr 2.98e-05, 0.24 s/step, 80.2 min
+step 20700: loss 0.14928 (out 0.00452, feat 0.14477), lr 2.97e-05, 0.23 s/step, 80.3 min
+step 20725: loss 0.14901 (out 0.00452, feat 0.14449), lr 2.96e-05, 0.22 s/step, 80.4 min
+step 20750: loss 0.14856 (out 0.00452, feat 0.14405), lr 2.95e-05, 0.23 s/step, 80.5 min
+eval 20750: val mae 0.08000 (blend 0.12338) | gate mae 0.10109 worst 0.13116 blend 0.15719 max_abs 5.0525
+step 20775: loss 0.14436 (out 0.00435, feat 0.14001), lr 2.94e-05, 0.24 s/step, 80.6 min
+step 20800: loss 0.14639 (out 0.00455, feat 0.14184), lr 2.93e-05, 0.24 s/step, 80.7 min
+step 20825: loss 0.14683 (out 0.00458, feat 0.14225), lr 2.92e-05, 0.24 s/step, 80.8 min
+step 20850: loss 0.14633 (out 0.00457, feat 0.14176), lr 2.91e-05, 0.25 s/step, 80.9 min
+step 20875: loss 0.14532 (out 0.00450, feat 0.14082), lr 2.90e-05, 0.24 s/step, 81.0 min
+step 20900: loss 0.14527 (out 0.00447, feat 0.14080), lr 2.89e-05, 0.24 s/step, 81.1 min
+step 20925: loss 0.14566 (out 0.00448, feat 0.14118), lr 2.88e-05, 0.42 s/step, 81.3 min
+step 20950: loss 0.14676 (out 0.00450, feat 0.14226), lr 2.87e-05, 0.24 s/step, 81.4 min
+step 20975: loss 0.14651 (out 0.00447, feat 0.14204), lr 2.86e-05, 0.24 s/step, 81.5 min
+step 21000: loss 0.14583 (out 0.00445, feat 0.14138), lr 2.85e-05, 0.25 s/step, 81.6 min
+eval 21000: val mae 0.08051 (blend 0.12423) | gate mae 0.09940 worst 0.13515 blend 0.15423 max_abs 5.0235
+step 21025: loss 0.14117 (out 0.00439, feat 0.13678), lr 2.85e-05, 0.22 s/step, 81.7 min
+step 21050: loss 0.14531 (out 0.00445, feat 0.14086), lr 2.84e-05, 0.22 s/step, 81.8 min
+step 21075: loss 0.14559 (out 0.00436, feat 0.14122), lr 2.83e-05, 0.22 s/step, 81.9 min
+step 21100: loss 0.14480 (out 0.00430, feat 0.14050), lr 2.82e-05, 0.22 s/step, 82.0 min
+step 21125: loss 0.14482 (out 0.00432, feat 0.14050), lr 2.81e-05, 0.22 s/step, 82.1 min
+step 21150: loss 0.14490 (out 0.00435, feat 0.14055), lr 2.80e-05, 0.22 s/step, 82.2 min
+step 21175: loss 0.14490 (out 0.00436, feat 0.14054), lr 2.79e-05, 0.22 s/step, 82.3 min
+step 21200: loss 0.14496 (out 0.00434, feat 0.14062), lr 2.78e-05, 0.22 s/step, 82.4 min
+step 21225: loss 0.14495 (out 0.00434, feat 0.14061), lr 2.77e-05, 0.22 s/step, 82.4 min
+step 21250: loss 0.14509 (out 0.00434, feat 0.14075), lr 2.76e-05, 0.22 s/step, 82.5 min
+eval 21250: val mae 0.08097 (blend 0.12495) | gate mae 0.10141 worst 0.13555 blend 0.15745 max_abs 5.0833
+step 21275: loss 0.14338 (out 0.00410, feat 0.13928), lr 2.75e-05, 0.22 s/step, 82.7 min
+step 21300: loss 0.14253 (out 0.00411, feat 0.13842), lr 2.74e-05, 0.22 s/step, 82.8 min
+step 21325: loss 0.14216 (out 0.00406, feat 0.13810), lr 2.73e-05, 0.22 s/step, 82.9 min
+step 21350: loss 0.14350 (out 0.00412, feat 0.13937), lr 2.72e-05, 0.23 s/step, 83.0 min
+step 21375: loss 0.14462 (out 0.00422, feat 0.14040), lr 2.71e-05, 0.22 s/step, 83.0 min
+step 21400: loss 0.14504 (out 0.00428, feat 0.14076), lr 2.70e-05, 0.22 s/step, 83.1 min
+step 21425: loss 0.14477 (out 0.00429, feat 0.14049), lr 2.70e-05, 0.22 s/step, 83.2 min
+step 21450: loss 0.14476 (out 0.00430, feat 0.14046), lr 2.69e-05, 0.22 s/step, 83.3 min
+step 21475: loss 0.14401 (out 0.00428, feat 0.13973), lr 2.68e-05, 0.22 s/step, 83.4 min
+step 21500: loss 0.14386 (out 0.00425, feat 0.13961), lr 2.67e-05, 0.22 s/step, 83.5 min
+eval 21500: val mae 0.08172 (blend 0.12621) | gate mae 0.10117 worst 0.13333 blend 0.15780 max_abs 5.0606
+step 21525: loss 0.14727 (out 0.00433, feat 0.14294), lr 2.66e-05, 0.22 s/step, 83.6 min
+step 21550: loss 0.14622 (out 0.00439, feat 0.14182), lr 2.65e-05, 0.22 s/step, 83.7 min
+step 21575: loss 0.14651 (out 0.00432, feat 0.14219), lr 2.64e-05, 0.22 s/step, 83.8 min
+step 21600: loss 0.14538 (out 0.00428, feat 0.14110), lr 2.63e-05, 0.22 s/step, 83.9 min
+step 21625: loss 0.14447 (out 0.00428, feat 0.14019), lr 2.62e-05, 0.22 s/step, 84.0 min
+step 21650: loss 0.14526 (out 0.00433, feat 0.14093), lr 2.61e-05, 0.22 s/step, 84.1 min
+step 21675: loss 0.14544 (out 0.00436, feat 0.14108), lr 2.60e-05, 0.22 s/step, 84.2 min
+step 21700: loss 0.14497 (out 0.00436, feat 0.14061), lr 2.60e-05, 0.22 s/step, 84.3 min
+step 21725: loss 0.14498 (out 0.00435, feat 0.14063), lr 2.59e-05, 0.22 s/step, 84.4 min
+step 21750: loss 0.14476 (out 0.00434, feat 0.14042), lr 2.58e-05, 0.22 s/step, 84.5 min
+eval 21750: val mae 0.07997 (blend 0.12307) | gate mae 0.10123 worst 0.13930 blend 0.15720 max_abs 4.9960
+step 21775: loss 0.14251 (out 0.00445, feat 0.13805), lr 2.57e-05, 0.22 s/step, 84.6 min
+step 21800: loss 0.14413 (out 0.00452, feat 0.13961), lr 2.56e-05, 0.22 s/step, 84.7 min
+step 21825: loss 0.14405 (out 0.00448, feat 0.13957), lr 2.55e-05, 0.22 s/step, 84.8 min
+step 21850: loss 0.14400 (out 0.00443, feat 0.13957), lr 2.54e-05, 0.22 s/step, 84.9 min
+step 21875: loss 0.14329 (out 0.00437, feat 0.13892), lr 2.53e-05, 0.22 s/step, 85.0 min
+step 21900: loss 0.14247 (out 0.00435, feat 0.13813), lr 2.52e-05, 0.22 s/step, 85.0 min
+step 21925: loss 0.14273 (out 0.00433, feat 0.13840), lr 2.52e-05, 0.22 s/step, 85.1 min
+step 21950: loss 0.14250 (out 0.00432, feat 0.13818), lr 2.51e-05, 0.22 s/step, 85.2 min
+step 21975: loss 0.14168 (out 0.00429, feat 0.13739), lr 2.50e-05, 0.22 s/step, 85.3 min
+step 22000: loss 0.14183 (out 0.00426, feat 0.13756), lr 2.49e-05, 0.22 s/step, 85.4 min
+eval 22000: val mae 0.07956 (blend 0.12274) | gate mae 0.10034 worst 0.13449 blend 0.15570 max_abs 5.0727
+step 22025: loss 0.14091 (out 0.00410, feat 0.13681), lr 2.48e-05, 0.22 s/step, 85.5 min
+step 22050: loss 0.13924 (out 0.00411, feat 0.13513), lr 2.47e-05, 0.22 s/step, 85.6 min
+step 22075: loss 0.13977 (out 0.00411, feat 0.13566), lr 2.46e-05, 0.22 s/step, 85.7 min
+step 22100: loss 0.14097 (out 0.00418, feat 0.13679), lr 2.45e-05, 0.22 s/step, 85.8 min
+step 22125: loss 0.14115 (out 0.00417, feat 0.13698), lr 2.45e-05, 0.22 s/step, 85.9 min
+step 22150: loss 0.14099 (out 0.00415, feat 0.13684), lr 2.44e-05, 0.22 s/step, 86.0 min
+step 22175: loss 0.14107 (out 0.00414, feat 0.13693), lr 2.43e-05, 0.22 s/step, 86.1 min
+step 22200: loss 0.14141 (out 0.00416, feat 0.13725), lr 2.42e-05, 0.22 s/step, 86.2 min
+step 22225: loss 0.14152 (out 0.00416, feat 0.13736), lr 2.41e-05, 0.40 s/step, 86.3 min
+step 22250: loss 0.14160 (out 0.00416, feat 0.13744), lr 2.40e-05, 0.22 s/step, 86.4 min
+eval 22250: val mae 0.08153 (blend 0.12617) | gate mae 0.10224 worst 0.13960 blend 0.15923 max_abs 4.8577
+step 22275: loss 0.13905 (out 0.00387, feat 0.13518), lr 2.39e-05, 0.22 s/step, 86.6 min
+step 22300: loss 0.13934 (out 0.00412, feat 0.13522), lr 2.39e-05, 0.22 s/step, 86.7 min
+step 22325: loss 0.13997 (out 0.00412, feat 0.13585), lr 2.38e-05, 0.22 s/step, 86.7 min
+step 22350: loss 0.13974 (out 0.00416, feat 0.13557), lr 2.37e-05, 0.22 s/step, 86.8 min
+step 22375: loss 0.14022 (out 0.00420, feat 0.13602), lr 2.36e-05, 0.22 s/step, 86.9 min
+step 22400: loss 0.13976 (out 0.00418, feat 0.13558), lr 2.35e-05, 0.22 s/step, 87.0 min
+step 22425: loss 0.13932 (out 0.00417, feat 0.13515), lr 2.34e-05, 0.22 s/step, 87.1 min
+step 22450: loss 0.13950 (out 0.00415, feat 0.13536), lr 2.33e-05, 0.22 s/step, 87.2 min
+step 22475: loss 0.13910 (out 0.00412, feat 0.13497), lr 2.33e-05, 0.22 s/step, 87.3 min
+step 22500: loss 0.13884 (out 0.00412, feat 0.13472), lr 2.32e-05, 0.22 s/step, 87.4 min
+eval 22500: val mae 0.07924 (blend 0.12238) | gate mae 0.10014 worst 0.13273 blend 0.15595 max_abs 5.1266
+step 22525: loss 0.13927 (out 0.00401, feat 0.13527), lr 2.31e-05, 0.22 s/step, 87.5 min
+step 22550: loss 0.13961 (out 0.00407, feat 0.13554), lr 2.30e-05, 0.22 s/step, 87.6 min
+step 22575: loss 0.14033 (out 0.00405, feat 0.13628), lr 2.29e-05, 0.22 s/step, 87.7 min
+step 22600: loss 0.13973 (out 0.00404, feat 0.13569), lr 2.28e-05, 0.22 s/step, 87.8 min
+step 22625: loss 0.13920 (out 0.00402, feat 0.13519), lr 2.28e-05, 0.22 s/step, 87.9 min
+step 22650: loss 0.13879 (out 0.00401, feat 0.13478), lr 2.27e-05, 0.22 s/step, 88.0 min
+step 22675: loss 0.13941 (out 0.00401, feat 0.13540), lr 2.26e-05, 0.22 s/step, 88.1 min
+step 22700: loss 0.13918 (out 0.00401, feat 0.13516), lr 2.25e-05, 0.22 s/step, 88.2 min
+step 22725: loss 0.13844 (out 0.00400, feat 0.13445), lr 2.24e-05, 0.23 s/step, 88.3 min
+step 22750: loss 0.13818 (out 0.00399, feat 0.13420), lr 2.24e-05, 0.22 s/step, 88.3 min
+eval 22750: val mae 0.07987 (blend 0.12314) | gate mae 0.09950 worst 0.13447 blend 0.15463 max_abs 5.0841
+step 22775: loss 0.13933 (out 0.00392, feat 0.13541), lr 2.23e-05, 0.22 s/step, 88.5 min
+step 22800: loss 0.13971 (out 0.00389, feat 0.13582), lr 2.22e-05, 0.22 s/step, 88.6 min
+step 22825: loss 0.13924 (out 0.00387, feat 0.13537), lr 2.21e-05, 0.22 s/step, 88.7 min
+step 22850: loss 0.13899 (out 0.00389, feat 0.13510), lr 2.20e-05, 0.22 s/step, 88.7 min
+step 22875: loss 0.13846 (out 0.00391, feat 0.13455), lr 2.20e-05, 0.22 s/step, 88.8 min
+step 22900: loss 0.13808 (out 0.00392, feat 0.13416), lr 2.19e-05, 0.22 s/step, 88.9 min
+step 22925: loss 0.13839 (out 0.00392, feat 0.13446), lr 2.18e-05, 0.22 s/step, 89.0 min
+step 22950: loss 0.13908 (out 0.00395, feat 0.13512), lr 2.17e-05, 0.22 s/step, 89.1 min
+step 22975: loss 0.13845 (out 0.00393, feat 0.13452), lr 2.16e-05, 0.22 s/step, 89.2 min
+step 23000: loss 0.13848 (out 0.00395, feat 0.13454), lr 2.16e-05, 0.22 s/step, 89.3 min
+eval 23000: val mae 0.07970 (blend 0.12270) | gate mae 0.10034 worst 0.13331 blend 0.15555 max_abs 5.0796
+step 23025: loss 0.13697 (out 0.00378, feat 0.13319), lr 2.15e-05, 0.22 s/step, 89.4 min
+step 23050: loss 0.13731 (out 0.00386, feat 0.13345), lr 2.14e-05, 0.22 s/step, 89.5 min
+step 23075: loss 0.13777 (out 0.00385, feat 0.13392), lr 2.13e-05, 0.22 s/step, 89.6 min
+step 23100: loss 0.13798 (out 0.00385, feat 0.13413), lr 2.12e-05, 0.22 s/step, 89.7 min
+step 23125: loss 0.13765 (out 0.00388, feat 0.13376), lr 2.12e-05, 0.22 s/step, 89.8 min
+step 23150: loss 0.13752 (out 0.00388, feat 0.13364), lr 2.11e-05, 0.22 s/step, 89.9 min
+step 23175: loss 0.13763 (out 0.00390, feat 0.13373), lr 2.10e-05, 0.22 s/step, 90.0 min
+step 23200: loss 0.13770 (out 0.00391, feat 0.13379), lr 2.09e-05, 0.22 s/step, 90.1 min
+step 23225: loss 0.13765 (out 0.00391, feat 0.13375), lr 2.09e-05, 0.23 s/step, 90.2 min
+step 23250: loss 0.13752 (out 0.00391, feat 0.13362), lr 2.08e-05, 0.23 s/step, 90.3 min
+eval 23250: val mae 0.08079 (blend 0.12473) | gate mae 0.10084 worst 0.13526 blend 0.15708 max_abs 5.0769
+step 23275: loss 0.13614 (out 0.00387, feat 0.13227), lr 2.07e-05, 0.22 s/step, 90.4 min
+step 23300: loss 0.13759 (out 0.00396, feat 0.13362), lr 2.06e-05, 0.22 s/step, 90.5 min
+step 23325: loss 0.13663 (out 0.00398, feat 0.13264), lr 2.06e-05, 0.22 s/step, 90.6 min
+step 23350: loss 0.13683 (out 0.00395, feat 0.13288), lr 2.05e-05, 0.22 s/step, 90.7 min
+step 23375: loss 0.13610 (out 0.00390, feat 0.13220), lr 2.04e-05, 0.22 s/step, 90.7 min
+step 23400: loss 0.13574 (out 0.00390, feat 0.13184), lr 2.03e-05, 0.22 s/step, 90.8 min
+step 23425: loss 0.13599 (out 0.00392, feat 0.13207), lr 2.03e-05, 0.22 s/step, 90.9 min
+step 23450: loss 0.13618 (out 0.00390, feat 0.13228), lr 2.02e-05, 0.22 s/step, 91.0 min
+step 23475: loss 0.13612 (out 0.00388, feat 0.13224), lr 2.01e-05, 0.22 s/step, 91.1 min
+step 23500: loss 0.13612 (out 0.00388, feat 0.13223), lr 2.00e-05, 0.22 s/step, 91.2 min
+eval 23500: val mae 0.07884 (blend 0.12165) | gate mae 0.09954 worst 0.13399 blend 0.15457 max_abs 5.1106 | best
+step 23525: loss 0.13729 (out 0.00404, feat 0.13325), lr 2.00e-05, 0.40 s/step, 91.4 min
+step 23550: loss 0.13631 (out 0.00405, feat 0.13226), lr 1.99e-05, 0.22 s/step, 91.5 min
+step 23575: loss 0.13435 (out 0.00394, feat 0.13041), lr 1.98e-05, 0.22 s/step, 91.6 min
+step 23600: loss 0.13383 (out 0.00387, feat 0.12996), lr 1.97e-05, 0.22 s/step, 91.7 min
+step 23625: loss 0.13329 (out 0.00383, feat 0.12946), lr 1.97e-05, 0.22 s/step, 91.8 min
+step 23650: loss 0.13384 (out 0.00384, feat 0.12999), lr 1.96e-05, 0.22 s/step, 91.9 min
+step 23675: loss 0.13422 (out 0.00383, feat 0.13039), lr 1.95e-05, 0.22 s/step, 92.0 min
+step 23700: loss 0.13439 (out 0.00384, feat 0.13055), lr 1.94e-05, 0.22 s/step, 92.1 min
+step 23725: loss 0.13379 (out 0.00383, feat 0.12996), lr 1.94e-05, 0.22 s/step, 92.2 min
+step 23750: loss 0.13408 (out 0.00383, feat 0.13025), lr 1.93e-05, 0.22 s/step, 92.3 min
+eval 23750: val mae 0.07962 (blend 0.12278) | gate mae 0.09975 worst 0.13462 blend 0.15511 max_abs 5.1157
+step 23775: loss 0.13606 (out 0.00379, feat 0.13227), lr 1.92e-05, 0.22 s/step, 92.4 min
+step 23800: loss 0.13464 (out 0.00377, feat 0.13087), lr 1.92e-05, 0.23 s/step, 92.5 min
+step 23825: loss 0.13433 (out 0.00377, feat 0.13057), lr 1.91e-05, 0.22 s/step, 92.6 min
+step 23850: loss 0.13484 (out 0.00380, feat 0.13104), lr 1.90e-05, 0.22 s/step, 92.7 min
+step 23875: loss 0.13479 (out 0.00377, feat 0.13102), lr 1.89e-05, 0.22 s/step, 92.8 min
+step 23900: loss 0.13427 (out 0.00379, feat 0.13049), lr 1.89e-05, 0.22 s/step, 92.9 min
+step 23925: loss 0.13417 (out 0.00379, feat 0.13038), lr 1.88e-05, 0.22 s/step, 92.9 min
+step 23950: loss 0.13390 (out 0.00377, feat 0.13012), lr 1.87e-05, 0.22 s/step, 93.0 min
+step 23975: loss 0.13351 (out 0.00377, feat 0.12974), lr 1.87e-05, 0.22 s/step, 93.1 min
+step 24000: loss 0.13345 (out 0.00376, feat 0.12969), lr 1.86e-05, 0.22 s/step, 93.2 min
+eval 24000: val mae 0.07933 (blend 0.12218) | gate mae 0.10012 worst 0.13792 blend 0.15532 max_abs 5.0661
+step 24025: loss 0.13436 (out 0.00363, feat 0.13073), lr 1.85e-05, 0.22 s/step, 93.4 min
+step 24050: loss 0.13721 (out 0.00378, feat 0.13342), lr 1.85e-05, 0.22 s/step, 93.4 min
+step 24075: loss 0.13486 (out 0.00372, feat 0.13114), lr 1.84e-05, 0.22 s/step, 93.5 min
+step 24100: loss 0.13486 (out 0.00379, feat 0.13107), lr 1.83e-05, 0.23 s/step, 93.6 min
+step 24125: loss 0.13469 (out 0.00375, feat 0.13094), lr 1.83e-05, 0.22 s/step, 93.7 min
+step 24150: loss 0.13462 (out 0.00378, feat 0.13084), lr 1.82e-05, 0.22 s/step, 93.8 min
+step 24175: loss 0.13476 (out 0.00380, feat 0.13097), lr 1.81e-05, 0.22 s/step, 93.9 min
+step 24200: loss 0.13421 (out 0.00379, feat 0.13042), lr 1.80e-05, 0.22 s/step, 94.0 min
+step 24225: loss 0.13420 (out 0.00379, feat 0.13040), lr 1.80e-05, 0.22 s/step, 94.1 min
+step 24250: loss 0.13376 (out 0.00379, feat 0.12996), lr 1.79e-05, 0.22 s/step, 94.2 min
+eval 24250: val mae 0.07787 (blend 0.11993) | gate mae 0.09873 worst 0.13133 blend 0.15325 max_abs 4.9584 | best
+step 24275: loss 0.12928 (out 0.00372, feat 0.12556), lr 1.78e-05, 0.22 s/step, 94.3 min
+step 24300: loss 0.13116 (out 0.00382, feat 0.12735), lr 1.78e-05, 0.22 s/step, 94.4 min
+step 24325: loss 0.13156 (out 0.00376, feat 0.12780), lr 1.77e-05, 0.22 s/step, 94.5 min
+step 24350: loss 0.13181 (out 0.00373, feat 0.12808), lr 1.76e-05, 0.22 s/step, 94.6 min
+step 24375: loss 0.13213 (out 0.00372, feat 0.12841), lr 1.76e-05, 0.22 s/step, 94.7 min
+step 24400: loss 0.13219 (out 0.00372, feat 0.12847), lr 1.75e-05, 0.22 s/step, 94.8 min
+step 24425: loss 0.13225 (out 0.00373, feat 0.12852), lr 1.75e-05, 0.22 s/step, 94.9 min
+step 24450: loss 0.13240 (out 0.00371, feat 0.12870), lr 1.74e-05, 0.22 s/step, 95.0 min
+step 24475: loss 0.13246 (out 0.00370, feat 0.12876), lr 1.73e-05, 0.22 s/step, 95.1 min
+step 24500: loss 0.13253 (out 0.00371, feat 0.12882), lr 1.73e-05, 0.22 s/step, 95.2 min
+eval 24500: val mae 0.08059 (blend 0.12438) | gate mae 0.09985 worst 0.13458 blend 0.15489 max_abs 4.9962
+step 24525: loss 0.13352 (out 0.00368, feat 0.12984), lr 1.72e-05, 0.22 s/step, 95.3 min
+step 24550: loss 0.13258 (out 0.00374, feat 0.12884), lr 1.71e-05, 0.22 s/step, 95.4 min
+step 24575: loss 0.13155 (out 0.00364, feat 0.12791), lr 1.71e-05, 0.22 s/step, 95.5 min
+step 24600: loss 0.13239 (out 0.00368, feat 0.12872), lr 1.70e-05, 0.22 s/step, 95.6 min
+step 24625: loss 0.13259 (out 0.00370, feat 0.12888), lr 1.69e-05, 0.22 s/step, 95.6 min
+step 24650: loss 0.13271 (out 0.00372, feat 0.12899), lr 1.69e-05, 0.22 s/step, 95.7 min
+step 24675: loss 0.13236 (out 0.00369, feat 0.12867), lr 1.68e-05, 0.22 s/step, 95.8 min
+step 24700: loss 0.13228 (out 0.00370, feat 0.12858), lr 1.68e-05, 0.22 s/step, 95.9 min
+step 24725: loss 0.13193 (out 0.00368, feat 0.12825), lr 1.67e-05, 0.22 s/step, 96.0 min
+step 24750: loss 0.13192 (out 0.00369, feat 0.12823), lr 1.66e-05, 0.22 s/step, 96.1 min
+eval 24750: val mae 0.07822 (blend 0.12014) | gate mae 0.09871 worst 0.13465 blend 0.15278 max_abs 4.7722
+step 24775: loss 0.13091 (out 0.00365, feat 0.12726), lr 1.66e-05, 0.22 s/step, 96.2 min
+step 24800: loss 0.13040 (out 0.00362, feat 0.12678), lr 1.65e-05, 0.22 s/step, 96.3 min
+step 24825: loss 0.12993 (out 0.00358, feat 0.12635), lr 1.64e-05, 0.39 s/step, 96.5 min
+step 24850: loss 0.13012 (out 0.00360, feat 0.12652), lr 1.64e-05, 0.22 s/step, 96.6 min
+step 24875: loss 0.13119 (out 0.00362, feat 0.12757), lr 1.63e-05, 0.23 s/step, 96.7 min
+step 24900: loss 0.13116 (out 0.00362, feat 0.12754), lr 1.63e-05, 0.22 s/step, 96.8 min
+step 24925: loss 0.13109 (out 0.00362, feat 0.12747), lr 1.62e-05, 0.22 s/step, 96.9 min
+step 24950: loss 0.13126 (out 0.00362, feat 0.12763), lr 1.61e-05, 0.22 s/step, 96.9 min
+step 24975: loss 0.13094 (out 0.00362, feat 0.12732), lr 1.61e-05, 0.22 s/step, 97.0 min
+step 25000: loss 0.13092 (out 0.00363, feat 0.12729), lr 1.60e-05, 0.22 s/step, 97.1 min
+eval 25000: val mae 0.07828 (blend 0.12056) | gate mae 0.09947 worst 0.12996 blend 0.15418 max_abs 5.1224
+step 25025: loss 0.13214 (out 0.00365, feat 0.12849), lr 1.60e-05, 0.22 s/step, 97.3 min
+step 25050: loss 0.13274 (out 0.00364, feat 0.12910), lr 1.59e-05, 0.22 s/step, 97.3 min
+step 25075: loss 0.13269 (out 0.00363, feat 0.12907), lr 1.59e-05, 0.22 s/step, 97.4 min
+step 25100: loss 0.13285 (out 0.00361, feat 0.12924), lr 1.58e-05, 0.22 s/step, 97.5 min
+step 25125: loss 0.13248 (out 0.00363, feat 0.12884), lr 1.57e-05, 0.22 s/step, 97.6 min
+step 25150: loss 0.13120 (out 0.00363, feat 0.12758), lr 1.57e-05, 0.22 s/step, 97.7 min
+step 25175: loss 0.13073 (out 0.00362, feat 0.12711), lr 1.56e-05, 0.22 s/step, 97.8 min
+step 25200: loss 0.13072 (out 0.00360, feat 0.12712), lr 1.56e-05, 0.22 s/step, 97.9 min
+step 25225: loss 0.13012 (out 0.00360, feat 0.12653), lr 1.55e-05, 0.22 s/step, 98.0 min
+step 25250: loss 0.12987 (out 0.00358, feat 0.12629), lr 1.55e-05, 0.22 s/step, 98.1 min
+eval 25250: val mae 0.07834 (blend 0.12095) | gate mae 0.09846 worst 0.12983 blend 0.15330 max_abs 5.1533
+step 25275: loss 0.12741 (out 0.00344, feat 0.12397), lr 1.54e-05, 0.22 s/step, 98.2 min
+step 25300: loss 0.12973 (out 0.00358, feat 0.12615), lr 1.53e-05, 0.22 s/step, 98.3 min
+step 25325: loss 0.12985 (out 0.00354, feat 0.12631), lr 1.53e-05, 0.22 s/step, 98.4 min
+step 25350: loss 0.12989 (out 0.00353, feat 0.12636), lr 1.52e-05, 0.22 s/step, 98.5 min
+step 25375: loss 0.12879 (out 0.00353, feat 0.12526), lr 1.52e-05, 0.22 s/step, 98.6 min
+step 25400: loss 0.12828 (out 0.00352, feat 0.12477), lr 1.51e-05, 0.22 s/step, 98.7 min
+step 25425: loss 0.12838 (out 0.00352, feat 0.12487), lr 1.51e-05, 0.22 s/step, 98.7 min
+step 25450: loss 0.12860 (out 0.00351, feat 0.12509), lr 1.50e-05, 0.22 s/step, 98.8 min
+step 25475: loss 0.12851 (out 0.00352, feat 0.12499), lr 1.50e-05, 0.22 s/step, 98.9 min
+step 25500: loss 0.12859 (out 0.00353, feat 0.12506), lr 1.49e-05, 0.22 s/step, 99.0 min
+eval 25500: val mae 0.07865 (blend 0.12131) | gate mae 0.09857 worst 0.13077 blend 0.15306 max_abs 5.1048
+step 25525: loss 0.12895 (out 0.00351, feat 0.12543), lr 1.49e-05, 0.22 s/step, 99.1 min
+step 25550: loss 0.12891 (out 0.00345, feat 0.12546), lr 1.48e-05, 0.22 s/step, 99.2 min
+step 25575: loss 0.12816 (out 0.00346, feat 0.12470), lr 1.47e-05, 0.22 s/step, 99.3 min
+step 25600: loss 0.12764 (out 0.00344, feat 0.12420), lr 1.47e-05, 0.22 s/step, 99.4 min
+step 25625: loss 0.12724 (out 0.00344, feat 0.12380), lr 1.46e-05, 0.22 s/step, 99.5 min
+step 25650: loss 0.12666 (out 0.00340, feat 0.12326), lr 1.46e-05, 0.22 s/step, 99.6 min
+step 25675: loss 0.12672 (out 0.00338, feat 0.12334), lr 1.45e-05, 0.22 s/step, 99.7 min
+step 25700: loss 0.12749 (out 0.00343, feat 0.12406), lr 1.45e-05, 0.22 s/step, 99.8 min
+step 25725: loss 0.12738 (out 0.00343, feat 0.12396), lr 1.44e-05, 0.22 s/step, 99.9 min
+step 25750: loss 0.12761 (out 0.00344, feat 0.12417), lr 1.44e-05, 0.22 s/step, 100.0 min
+eval 25750: val mae 0.07877 (blend 0.12134) | gate mae 0.09974 worst 0.13004 blend 0.15494 max_abs 5.0495
+step 25775: loss 0.13100 (out 0.00356, feat 0.12744), lr 1.43e-05, 0.22 s/step, 100.1 min
+step 25800: loss 0.12863 (out 0.00350, feat 0.12513), lr 1.43e-05, 0.22 s/step, 100.2 min
+step 25825: loss 0.12847 (out 0.00345, feat 0.12502), lr 1.42e-05, 0.22 s/step, 100.3 min
+step 25850: loss 0.12929 (out 0.00345, feat 0.12584), lr 1.42e-05, 0.22 s/step, 100.4 min
+step 25875: loss 0.12945 (out 0.00351, feat 0.12594), lr 1.41e-05, 0.22 s/step, 100.5 min
+step 25900: loss 0.12966 (out 0.00352, feat 0.12614), lr 1.41e-05, 0.22 s/step, 100.6 min
+step 25925: loss 0.12934 (out 0.00352, feat 0.12581), lr 1.40e-05, 0.22 s/step, 100.6 min
+step 25950: loss 0.12861 (out 0.00350, feat 0.12511), lr 1.40e-05, 0.22 s/step, 100.7 min
+step 25975: loss 0.12869 (out 0.00350, feat 0.12520), lr 1.39e-05, 0.22 s/step, 100.8 min
+step 26000: loss 0.12875 (out 0.00350, feat 0.12526), lr 1.39e-05, 0.22 s/step, 100.9 min
+eval 26000: val mae 0.07756 (blend 0.11943) | gate mae 0.09856 worst 0.12879 blend 0.15305 max_abs 5.0889 | best
+step 26025: loss 0.12664 (out 0.00341, feat 0.12323), lr 1.38e-05, 0.22 s/step, 101.1 min
+step 26050: loss 0.12606 (out 0.00348, feat 0.12258), lr 1.38e-05, 0.22 s/step, 101.2 min
+step 26075: loss 0.12656 (out 0.00348, feat 0.12308), lr 1.37e-05, 0.22 s/step, 101.2 min
+step 26100: loss 0.12743 (out 0.00351, feat 0.12392), lr 1.37e-05, 0.22 s/step, 101.3 min
+step 26125: loss 0.12749 (out 0.00350, feat 0.12399), lr 1.37e-05, 0.22 s/step, 101.4 min
+step 26150: loss 0.12769 (out 0.00348, feat 0.12421), lr 1.36e-05, 0.41 s/step, 101.6 min
+step 26175: loss 0.12769 (out 0.00349, feat 0.12420), lr 1.36e-05, 0.22 s/step, 101.7 min
+step 26200: loss 0.12837 (out 0.00350, feat 0.12486), lr 1.35e-05, 0.22 s/step, 101.8 min
+step 26225: loss 0.12821 (out 0.00349, feat 0.12472), lr 1.35e-05, 0.22 s/step, 101.9 min
+step 26250: loss 0.12823 (out 0.00349, feat 0.12474), lr 1.34e-05, 0.22 s/step, 102.0 min
+eval 26250: val mae 0.07824 (blend 0.12056) | gate mae 0.09789 worst 0.13108 blend 0.15180 max_abs 5.0359
+step 26275: loss 0.12561 (out 0.00321, feat 0.12240), lr 1.34e-05, 0.21 s/step, 102.1 min
+step 26300: loss 0.12538 (out 0.00336, feat 0.12201), lr 1.33e-05, 0.22 s/step, 102.2 min
+step 26325: loss 0.12551 (out 0.00341, feat 0.12210), lr 1.33e-05, 0.22 s/step, 102.3 min
+step 26350: loss 0.12532 (out 0.00340, feat 0.12192), lr 1.32e-05, 0.21 s/step, 102.4 min
+step 26375: loss 0.12517 (out 0.00337, feat 0.12180), lr 1.32e-05, 0.22 s/step, 102.5 min
+step 26400: loss 0.12529 (out 0.00335, feat 0.12194), lr 1.32e-05, 0.22 s/step, 102.5 min
+step 26425: loss 0.12502 (out 0.00336, feat 0.12167), lr 1.31e-05, 0.22 s/step, 102.6 min
+step 26450: loss 0.12467 (out 0.00337, feat 0.12130), lr 1.31e-05, 0.22 s/step, 102.7 min
+step 26475: loss 0.12497 (out 0.00337, feat 0.12160), lr 1.30e-05, 0.22 s/step, 102.8 min
+step 26500: loss 0.12512 (out 0.00337, feat 0.12175), lr 1.30e-05, 0.22 s/step, 102.9 min
+eval 26500: val mae 0.07734 (blend 0.11910) | gate mae 0.09852 worst 0.13045 blend 0.15285 max_abs 5.0427 | best
+step 26525: loss 0.12585 (out 0.00341, feat 0.12244), lr 1.29e-05, 0.22 s/step, 103.1 min
+step 26550: loss 0.12562 (out 0.00345, feat 0.12216), lr 1.29e-05, 0.22 s/step, 103.2 min
+step 26575: loss 0.12468 (out 0.00340, feat 0.12128), lr 1.29e-05, 0.22 s/step, 103.2 min
+step 26600: loss 0.12415 (out 0.00336, feat 0.12079), lr 1.28e-05, 0.22 s/step, 103.3 min
+step 26625: loss 0.12491 (out 0.00336, feat 0.12154), lr 1.28e-05, 0.21 s/step, 103.4 min
+step 26650: loss 0.12513 (out 0.00338, feat 0.12175), lr 1.27e-05, 0.22 s/step, 103.5 min
+step 26675: loss 0.12577 (out 0.00338, feat 0.12239), lr 1.27e-05, 0.22 s/step, 103.6 min
+step 26700: loss 0.12589 (out 0.00338, feat 0.12251), lr 1.27e-05, 0.22 s/step, 103.7 min
+step 26725: loss 0.12567 (out 0.00338, feat 0.12229), lr 1.26e-05, 0.22 s/step, 103.8 min
+step 26750: loss 0.12605 (out 0.00337, feat 0.12268), lr 1.26e-05, 0.22 s/step, 103.9 min
+eval 26750: val mae 0.07775 (blend 0.11969) | gate mae 0.09878 worst 0.13132 blend 0.15326 max_abs 5.0926
+step 26775: loss 0.12556 (out 0.00333, feat 0.12223), lr 1.25e-05, 0.22 s/step, 104.0 min
+step 26800: loss 0.12575 (out 0.00338, feat 0.12237), lr 1.25e-05, 0.22 s/step, 104.1 min
+step 26825: loss 0.12645 (out 0.00344, feat 0.12301), lr 1.25e-05, 0.22 s/step, 104.2 min
+step 26850: loss 0.12558 (out 0.00341, feat 0.12217), lr 1.24e-05, 0.22 s/step, 104.3 min
+step 26875: loss 0.12628 (out 0.00341, feat 0.12287), lr 1.24e-05, 0.22 s/step, 104.4 min
+step 26900: loss 0.12549 (out 0.00337, feat 0.12212), lr 1.24e-05, 0.22 s/step, 104.5 min
+step 26925: loss 0.12539 (out 0.00335, feat 0.12204), lr 1.23e-05, 0.22 s/step, 104.6 min
+step 26950: loss 0.12551 (out 0.00337, feat 0.12214), lr 1.23e-05, 0.22 s/step, 104.6 min
+step 26975: loss 0.12565 (out 0.00338, feat 0.12227), lr 1.22e-05, 0.22 s/step, 104.7 min
+step 27000: loss 0.12586 (out 0.00338, feat 0.12247), lr 1.22e-05, 0.22 s/step, 104.8 min
+eval 27000: val mae 0.07812 (blend 0.12051) | gate mae 0.09831 worst 0.12928 blend 0.15283 max_abs 5.1084
+step 27025: loss 0.12688 (out 0.00338, feat 0.12350), lr 1.22e-05, 0.22 s/step, 105.0 min
+step 27050: loss 0.12601 (out 0.00332, feat 0.12269), lr 1.21e-05, 0.22 s/step, 105.1 min
+step 27075: loss 0.12557 (out 0.00332, feat 0.12225), lr 1.21e-05, 0.22 s/step, 105.1 min
+step 27100: loss 0.12547 (out 0.00334, feat 0.12214), lr 1.21e-05, 0.22 s/step, 105.2 min
+step 27125: loss 0.12604 (out 0.00334, feat 0.12270), lr 1.20e-05, 0.21 s/step, 105.3 min
+step 27150: loss 0.12586 (out 0.00334, feat 0.12252), lr 1.20e-05, 0.22 s/step, 105.4 min
+step 27175: loss 0.12586 (out 0.00333, feat 0.12253), lr 1.20e-05, 0.23 s/step, 105.5 min
+step 27200: loss 0.12602 (out 0.00333, feat 0.12269), lr 1.19e-05, 0.22 s/step, 105.6 min
+step 27225: loss 0.12565 (out 0.00332, feat 0.12234), lr 1.19e-05, 0.22 s/step, 105.7 min
+step 27250: loss 0.12521 (out 0.00332, feat 0.12189), lr 1.19e-05, 0.22 s/step, 105.8 min
+eval 27250: val mae 0.07749 (blend 0.11945) | gate mae 0.09774 worst 0.12947 blend 0.15171 max_abs 5.1200
+step 27275: loss 0.12503 (out 0.00331, feat 0.12172), lr 1.18e-05, 0.22 s/step, 105.9 min
+step 27300: loss 0.12544 (out 0.00326, feat 0.12218), lr 1.18e-05, 0.22 s/step, 106.0 min
+step 27325: loss 0.12458 (out 0.00327, feat 0.12131), lr 1.18e-05, 0.22 s/step, 106.1 min
+step 27350: loss 0.12462 (out 0.00327, feat 0.12135), lr 1.17e-05, 0.22 s/step, 106.2 min
+step 27375: loss 0.12472 (out 0.00329, feat 0.12143), lr 1.17e-05, 0.22 s/step, 106.3 min
+step 27400: loss 0.12477 (out 0.00329, feat 0.12149), lr 1.17e-05, 0.22 s/step, 106.4 min
+step 27425: loss 0.12429 (out 0.00327, feat 0.12102), lr 1.16e-05, 0.22 s/step, 106.5 min
+step 27450: loss 0.12450 (out 0.00330, feat 0.12119), lr 1.16e-05, 0.22 s/step, 106.5 min
+step 27475: loss 0.12440 (out 0.00329, feat 0.12112), lr 1.16e-05, 0.40 s/step, 106.7 min
+step 27500: loss 0.12429 (out 0.00328, feat 0.12102), lr 1.15e-05, 0.24 s/step, 106.8 min
+eval 27500: val mae 0.07848 (blend 0.12095) | gate mae 0.09821 worst 0.13023 blend 0.15245 max_abs 5.0004
+step 27525: loss 0.12294 (out 0.00328, feat 0.11966), lr 1.15e-05, 0.25 s/step, 107.0 min
+step 27550: loss 0.12404 (out 0.00329, feat 0.12075), lr 1.15e-05, 0.24 s/step, 107.1 min
+step 27575: loss 0.12421 (out 0.00333, feat 0.12088), lr 1.14e-05, 0.24 s/step, 107.2 min
+step 27600: loss 0.12493 (out 0.00331, feat 0.12162), lr 1.14e-05, 0.25 s/step, 107.3 min
+step 27625: loss 0.12548 (out 0.00331, feat 0.12217), lr 1.14e-05, 0.22 s/step, 107.4 min
+step 27650: loss 0.12603 (out 0.00333, feat 0.12270), lr 1.14e-05, 0.22 s/step, 107.4 min
+step 27675: loss 0.12591 (out 0.00332, feat 0.12259), lr 1.13e-05, 0.22 s/step, 107.5 min
+step 27700: loss 0.12555 (out 0.00333, feat 0.12222), lr 1.13e-05, 0.22 s/step, 107.6 min
+step 27725: loss 0.12552 (out 0.00334, feat 0.12218), lr 1.13e-05, 0.22 s/step, 107.7 min
+step 27750: loss 0.12559 (out 0.00334, feat 0.12224), lr 1.12e-05, 0.22 s/step, 107.8 min
+eval 27750: val mae 0.07725 (blend 0.11903) | gate mae 0.09805 worst 0.12817 blend 0.15227 max_abs 4.9562 | best
+step 27775: loss 0.12363 (out 0.00326, feat 0.12036), lr 1.12e-05, 0.22 s/step, 108.0 min
+step 27800: loss 0.12664 (out 0.00337, feat 0.12326), lr 1.12e-05, 0.23 s/step, 108.1 min
+step 27825: loss 0.12598 (out 0.00341, feat 0.12257), lr 1.12e-05, 0.22 s/step, 108.2 min
+step 27850: loss 0.12612 (out 0.00343, feat 0.12269), lr 1.11e-05, 0.22 s/step, 108.3 min
+step 27875: loss 0.12656 (out 0.00340, feat 0.12316), lr 1.11e-05, 0.22 s/step, 108.3 min
+step 27900: loss 0.12620 (out 0.00337, feat 0.12283), lr 1.11e-05, 0.22 s/step, 108.4 min
+step 27925: loss 0.12601 (out 0.00335, feat 0.12266), lr 1.11e-05, 0.22 s/step, 108.5 min
+step 27950: loss 0.12580 (out 0.00334, feat 0.12246), lr 1.10e-05, 0.23 s/step, 108.6 min
+step 27975: loss 0.12557 (out 0.00333, feat 0.12224), lr 1.10e-05, 0.22 s/step, 108.7 min
+step 28000: loss 0.12520 (out 0.00333, feat 0.12187), lr 1.10e-05, 0.22 s/step, 108.8 min
+eval 28000: val mae 0.07742 (blend 0.11938) | gate mae 0.09765 worst 0.12709 blend 0.15180 max_abs 5.0091
+step 28025: loss 0.12270 (out 0.00342, feat 0.11927), lr 1.10e-05, 0.22 s/step, 108.9 min
+step 28050: loss 0.12443 (out 0.00336, feat 0.12107), lr 1.09e-05, 0.22 s/step, 109.0 min
+step 28075: loss 0.12421 (out 0.00327, feat 0.12094), lr 1.09e-05, 0.22 s/step, 109.1 min
+step 28100: loss 0.12363 (out 0.00326, feat 0.12037), lr 1.09e-05, 0.22 s/step, 109.2 min
+step 28125: loss 0.12326 (out 0.00325, feat 0.12001), lr 1.09e-05, 0.23 s/step, 109.3 min
+step 28150: loss 0.12290 (out 0.00323, feat 0.11967), lr 1.08e-05, 0.22 s/step, 109.4 min
+step 28175: loss 0.12235 (out 0.00320, feat 0.11915), lr 1.08e-05, 0.22 s/step, 109.5 min
+step 28200: loss 0.12219 (out 0.00320, feat 0.11899), lr 1.08e-05, 0.22 s/step, 109.6 min
+step 28225: loss 0.12232 (out 0.00323, feat 0.11910), lr 1.08e-05, 0.22 s/step, 109.7 min
+step 28250: loss 0.12282 (out 0.00322, feat 0.11960), lr 1.08e-05, 0.22 s/step, 109.8 min
+eval 28250: val mae 0.07585 (blend 0.11663) | gate mae 0.09673 worst 0.12729 blend 0.15020 max_abs 4.8527 | best
+step 28275: loss 0.12183 (out 0.00301, feat 0.11881), lr 1.07e-05, 0.22 s/step, 109.9 min
+step 28300: loss 0.12277 (out 0.00310, feat 0.11967), lr 1.07e-05, 0.23 s/step, 110.0 min
+step 28325: loss 0.12247 (out 0.00311, feat 0.11936), lr 1.07e-05, 0.22 s/step, 110.1 min
+step 28350: loss 0.12285 (out 0.00313, feat 0.11971), lr 1.07e-05, 0.22 s/step, 110.2 min
+step 28375: loss 0.12270 (out 0.00312, feat 0.11958), lr 1.06e-05, 0.23 s/step, 110.3 min
+step 28400: loss 0.12369 (out 0.00317, feat 0.12052), lr 1.06e-05, 0.22 s/step, 110.4 min
+step 28425: loss 0.12348 (out 0.00319, feat 0.12029), lr 1.06e-05, 0.22 s/step, 110.5 min
+step 28450: loss 0.12344 (out 0.00318, feat 0.12027), lr 1.06e-05, 0.23 s/step, 110.6 min
+step 28475: loss 0.12303 (out 0.00315, feat 0.11988), lr 1.06e-05, 0.22 s/step, 110.7 min
+step 28500: loss 0.12278 (out 0.00317, feat 0.11962), lr 1.06e-05, 0.22 s/step, 110.7 min
+eval 28500: val mae 0.07650 (blend 0.11750) | gate mae 0.09764 worst 0.13234 blend 0.15110 max_abs 4.9717
+step 28525: loss 0.12191 (out 0.00329, feat 0.11862), lr 1.05e-05, 0.22 s/step, 110.9 min
+step 28550: loss 0.12153 (out 0.00323, feat 0.11829), lr 1.05e-05, 0.23 s/step, 111.0 min
+step 28575: loss 0.12332 (out 0.00324, feat 0.12008), lr 1.05e-05, 0.22 s/step, 111.1 min
+step 28600: loss 0.12345 (out 0.00323, feat 0.12022), lr 1.05e-05, 0.22 s/step, 111.2 min
+step 28625: loss 0.12381 (out 0.00325, feat 0.12057), lr 1.05e-05, 0.22 s/step, 111.3 min
+step 28650: loss 0.12332 (out 0.00323, feat 0.12009), lr 1.04e-05, 0.22 s/step, 111.3 min
+step 28675: loss 0.12344 (out 0.00322, feat 0.12022), lr 1.04e-05, 0.22 s/step, 111.4 min
+step 28700: loss 0.12283 (out 0.00321, feat 0.11962), lr 1.04e-05, 0.22 s/step, 111.5 min
+step 28725: loss 0.12271 (out 0.00320, feat 0.11951), lr 1.04e-05, 0.23 s/step, 111.6 min
+step 28750: loss 0.12313 (out 0.00320, feat 0.11993), lr 1.04e-05, 0.40 s/step, 111.8 min
+eval 28750: val mae 0.07709 (blend 0.11893) | gate mae 0.09763 worst 0.12973 blend 0.15186 max_abs 4.9444
+step 28775: loss 0.12156 (out 0.00316, feat 0.11840), lr 1.04e-05, 0.22 s/step, 111.9 min
+step 28800: loss 0.12344 (out 0.00320, feat 0.12024), lr 1.04e-05, 0.23 s/step, 112.0 min
+step 28825: loss 0.12209 (out 0.00325, feat 0.11884), lr 1.03e-05, 0.22 s/step, 112.1 min
+step 28850: loss 0.12232 (out 0.00325, feat 0.11907), lr 1.03e-05, 0.22 s/step, 112.2 min
+step 28875: loss 0.12239 (out 0.00325, feat 0.11914), lr 1.03e-05, 0.22 s/step, 112.3 min
+step 28900: loss 0.12223 (out 0.00321, feat 0.11902), lr 1.03e-05, 0.22 s/step, 112.4 min
+step 28925: loss 0.12179 (out 0.00320, feat 0.11859), lr 1.03e-05, 0.22 s/step, 112.5 min
+step 28950: loss 0.12212 (out 0.00321, feat 0.11891), lr 1.03e-05, 0.22 s/step, 112.6 min
+step 28975: loss 0.12218 (out 0.00321, feat 0.11897), lr 1.03e-05, 0.22 s/step, 112.7 min
+step 29000: loss 0.12242 (out 0.00322, feat 0.11920), lr 1.02e-05, 0.22 s/step, 112.8 min
+eval 29000: val mae 0.07819 (blend 0.12057) | gate mae 0.09840 worst 0.12996 blend 0.15306 max_abs 4.9881
+step 29025: loss 0.12229 (out 0.00314, feat 0.11915), lr 1.02e-05, 0.22 s/step, 112.9 min
+step 29050: loss 0.12115 (out 0.00307, feat 0.11808), lr 1.02e-05, 0.22 s/step, 113.0 min
+step 29075: loss 0.12111 (out 0.00310, feat 0.11801), lr 1.02e-05, 0.22 s/step, 113.1 min
+step 29100: loss 0.12177 (out 0.00311, feat 0.11866), lr 1.02e-05, 0.22 s/step, 113.2 min
+step 29125: loss 0.12129 (out 0.00312, feat 0.11817), lr 1.02e-05, 0.22 s/step, 113.2 min
+step 29150: loss 0.12140 (out 0.00311, feat 0.11829), lr 1.02e-05, 0.23 s/step, 113.3 min
+step 29175: loss 0.12159 (out 0.00312, feat 0.11847), lr 1.02e-05, 0.22 s/step, 113.4 min
+step 29200: loss 0.12169 (out 0.00314, feat 0.11855), lr 1.02e-05, 0.22 s/step, 113.5 min
+step 29225: loss 0.12124 (out 0.00313, feat 0.11811), lr 1.01e-05, 0.23 s/step, 113.6 min
+step 29250: loss 0.12173 (out 0.00314, feat 0.11859), lr 1.01e-05, 0.22 s/step, 113.7 min
+eval 29250: val mae 0.07677 (blend 0.11813) | gate mae 0.09751 worst 0.12726 blend 0.15109 max_abs 5.0651
+step 29275: loss 0.12108 (out 0.00314, feat 0.11795), lr 1.01e-05, 0.22 s/step, 113.8 min
+step 29300: loss 0.12360 (out 0.00318, feat 0.12042), lr 1.01e-05, 0.22 s/step, 113.9 min
+step 29325: loss 0.12268 (out 0.00317, feat 0.11951), lr 1.01e-05, 0.22 s/step, 114.0 min
+step 29350: loss 0.12217 (out 0.00317, feat 0.11900), lr 1.01e-05, 0.22 s/step, 114.1 min
+step 29375: loss 0.12282 (out 0.00316, feat 0.11966), lr 1.01e-05, 0.23 s/step, 114.2 min
+step 29400: loss 0.12231 (out 0.00316, feat 0.11915), lr 1.01e-05, 0.23 s/step, 114.3 min
+step 29425: loss 0.12238 (out 0.00316, feat 0.11922), lr 1.01e-05, 0.22 s/step, 114.4 min
+step 29450: loss 0.12274 (out 0.00318, feat 0.11956), lr 1.01e-05, 0.22 s/step, 114.5 min
+step 29475: loss 0.12280 (out 0.00318, feat 0.11962), lr 1.01e-05, 0.22 s/step, 114.6 min
+step 29500: loss 0.12285 (out 0.00319, feat 0.11966), lr 1.01e-05, 0.22 s/step, 114.7 min
+eval 29500: val mae 0.07804 (blend 0.12035) | gate mae 0.09874 worst 0.12858 blend 0.15334 max_abs 4.9378
+step 29525: loss 0.12268 (out 0.00310, feat 0.11959), lr 1.01e-05, 0.22 s/step, 114.8 min
+step 29550: loss 0.12173 (out 0.00307, feat 0.11866), lr 1.00e-05, 0.22 s/step, 114.9 min
+step 29575: loss 0.12009 (out 0.00304, feat 0.11705), lr 1.00e-05, 0.22 s/step, 115.0 min
+step 29600: loss 0.12136 (out 0.00309, feat 0.11827), lr 1.00e-05, 0.22 s/step, 115.1 min
+step 29625: loss 0.12212 (out 0.00313, feat 0.11900), lr 1.00e-05, 0.22 s/step, 115.2 min
+step 29650: loss 0.12216 (out 0.00313, feat 0.11903), lr 1.00e-05, 0.22 s/step, 115.3 min
+step 29675: loss 0.12251 (out 0.00313, feat 0.11938), lr 1.00e-05, 0.22 s/step, 115.4 min
+step 29700: loss 0.12234 (out 0.00314, feat 0.11921), lr 1.00e-05, 0.22 s/step, 115.5 min
+step 29725: loss 0.12234 (out 0.00316, feat 0.11918), lr 1.00e-05, 0.22 s/step, 115.5 min
+step 29750: loss 0.12218 (out 0.00316, feat 0.11902), lr 1.00e-05, 0.22 s/step, 115.6 min
+eval 29750: val mae 0.07754 (blend 0.11951) | gate mae 0.09802 worst 0.12784 blend 0.15224 max_abs 5.0267
+step 29775: loss 0.12059 (out 0.00311, feat 0.11748), lr 1.00e-05, 0.22 s/step, 115.8 min
+step 29800: loss 0.12130 (out 0.00317, feat 0.11813), lr 1.00e-05, 0.22 s/step, 115.9 min
+step 29825: loss 0.12080 (out 0.00320, feat 0.11761), lr 1.00e-05, 0.22 s/step, 116.0 min
+step 29850: loss 0.12134 (out 0.00319, feat 0.11815), lr 1.00e-05, 0.22 s/step, 116.0 min
+step 29875: loss 0.12085 (out 0.00320, feat 0.11765), lr 1.00e-05, 0.22 s/step, 116.1 min
+step 29900: loss 0.12074 (out 0.00320, feat 0.11754), lr 1.00e-05, 0.22 s/step, 116.2 min
+step 29925: loss 0.12106 (out 0.00321, feat 0.11784), lr 1.00e-05, 0.23 s/step, 116.3 min
+step 29950: loss 0.12164 (out 0.00321, feat 0.11843), lr 1.00e-05, 0.22 s/step, 116.4 min
+step 29975: loss 0.12164 (out 0.00320, feat 0.11844), lr 1.00e-05, 0.23 s/step, 116.5 min
+step 30000: loss 0.12187 (out 0.00320, feat 0.11867), lr 1.00e-05, 0.23 s/step, 116.6 min
+eval 30000: val mae 0.07746 (blend 0.11956) | gate mae 0.09764 worst 0.12733 blend 0.15198 max_abs 5.0110
+step 30000, 116.7 min trained, best val mae 0.07585: /workspace/distill/out/train/bk_tiny_best.pt
+[box_job] [2026-11-04T05:47:41Z] STATUS running review
+[box_job] [2026-11-04T05:47:45Z] + mkdir -p /workspace/distill/out/review 
+[box_job] [2026-11-04T05:47:45Z] + (cd /workspace/distill/MuseTalk && timeout -s INT -k 60 3000 /workspace/.venvs/musetalk_locked_52b3b7ed88dcefc33400ff618a4804ff46f8e295aadd3bc9c69efa757e3042f1/bin/python scripts/ios/review_distilled_unet.py --student-weights /workspace/distill/out/train/bk_tiny_best.pt --student-json /workspace/distill/out/train/bk_tiny.json --avatars /workspace/distill/inputs/avatars/en_01_maya_abe451d3_talking_f6cf8be7fb\,/workspace/distill/inputs/avatars/en_03_marcus_19eb1ea8_talking_ada35a4a4d\,/workspace/distill/inputs/avatars/es_01_valeria_aed74c50_talking_003d585d96\,/workspace/distill/inputs/avatars/es_03_mateo_884600e1_talking_75d88cda6c\,/workspace/distill/inputs/avatars/japanese_realtime_talking_7d94520b7f\,/workspace/distill/inputs/avatars/latina_guided_20260925_talking_84c5bc80b8 --audio /workspace/distill/inputs/audio/review/ai-assistant.mpga /workspace/distill/inputs/audio/review/eng.wav --seconds 10 --device cuda --facemesh-python /workspace/distill/venv-mp/bin/python --out /workspace/distill/out/review ) | tee -a /workspace/distill/out/review/review.log
+12 clips, 3000 frames per arm, on NVIDIA GeForce RTX 3090
+loading teacher UNet unet.pth...
+/workspace/distill/MuseTalk/musetalk/models/unet.py:44: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  weights = torch.load(model_path) if torch.cuda.is_available() else torch.load(model_path, map_location=self.device)
+  A en_01_maya_abe451d3_talking_f6cf8be7fb__ai-assistant: 16.0 ms/frame on cuda
+  A en_01_maya_abe451d3_talking_f6cf8be7fb__eng: 15.8 ms/frame on cuda
+  A en_03_marcus_19eb1ea8_talking_ada35a4a4d__ai-assistant: 15.7 ms/frame on cuda
+  A en_03_marcus_19eb1ea8_talking_ada35a4a4d__eng: 15.8 ms/frame on cuda
+  A es_01_valeria_aed74c50_talking_003d585d96__ai-assistant: 15.8 ms/frame on cuda
+  A es_01_valeria_aed74c50_talking_003d585d96__eng: 15.8 ms/frame on cuda
+  A es_03_mateo_884600e1_talking_75d88cda6c__ai-assistant: 15.8 ms/frame on cuda
+  A es_03_mateo_884600e1_talking_75d88cda6c__eng: 15.8 ms/frame on cuda
+  A japanese_realtime_talking_7d94520b7f__ai-assistant: 15.9 ms/frame on cuda
+  A japanese_realtime_talking_7d94520b7f__eng: 15.9 ms/frame on cuda
+  A latina_guided_20260925_talking_84c5bc80b8__ai-assistant: 15.9 ms/frame on cuda
+  A latina_guided_20260925_talking_84c5bc80b8__eng: 15.9 ms/frame on cuda
+  N en_01_maya_abe451d3_talking_f6cf8be7fb__ai-assistant: 6.4 ms/frame on cuda
+  N en_01_maya_abe451d3_talking_f6cf8be7fb__eng: 6.0 ms/frame on cuda
+  N en_03_marcus_19eb1ea8_talking_ada35a4a4d__ai-assistant: 6.0 ms/frame on cuda
+  N en_03_marcus_19eb1ea8_talking_ada35a4a4d__eng: 6.0 ms/frame on cuda
+  N es_01_valeria_aed74c50_talking_003d585d96__ai-assistant: 6.1 ms/frame on cuda
+  N es_01_valeria_aed74c50_talking_003d585d96__eng: 6.2 ms/frame on cuda
+  N es_03_mateo_884600e1_talking_75d88cda6c__ai-assistant: 6.1 ms/frame on cuda
+  N es_03_mateo_884600e1_talking_75d88cda6c__eng: 6.1 ms/frame on cuda
+  N japanese_realtime_talking_7d94520b7f__ai-assistant: 6.0 ms/frame on cuda
+  N japanese_realtime_talking_7d94520b7f__eng: 6.1 ms/frame on cuda
+  N latina_guided_20260925_talking_84c5bc80b8__ai-assistant: 6.0 ms/frame on cuda
+  N latina_guided_20260925_talking_84c5bc80b8__eng: 6.0 ms/frame on cuda
+loading student UNet bk_tiny_best.pt...
+  S en_01_maya_abe451d3_talking_f6cf8be7fb__ai-assistant: 8.0 ms/frame on cuda
+  S en_01_maya_abe451d3_talking_f6cf8be7fb__eng: 8.0 ms/frame on cuda
+  S en_03_marcus_19eb1ea8_talking_ada35a4a4d__ai-assistant: 8.0 ms/frame on cuda
+  S en_03_marcus_19eb1ea8_talking_ada35a4a4d__eng: 8.0 ms/frame on cuda
+  S es_01_valeria_aed74c50_talking_003d585d96__ai-assistant: 8.0 ms/frame on cuda
+  S es_01_valeria_aed74c50_talking_003d585d96__eng: 8.0 ms/frame on cuda
+  S es_03_mateo_884600e1_talking_75d88cda6c__ai-assistant: 8.0 ms/frame on cuda
+  S es_03_mateo_884600e1_talking_75d88cda6c__eng: 8.0 ms/frame on cuda
+  S japanese_realtime_talking_7d94520b7f__ai-assistant: 8.0 ms/frame on cuda
+  S japanese_realtime_talking_7d94520b7f__eng: 8.0 ms/frame on cuda
+  S latina_guided_20260925_talking_84c5bc80b8__ai-assistant: 8.1 ms/frame on cuda
+  S latina_guided_20260925_talking_84c5bc80b8__eng: 8.1 ms/frame on cuda
+  S16 en_01_maya_abe451d3_talking_f6cf8be7fb__ai-assistant: 3.4 ms/frame on cuda
+  S16 en_01_maya_abe451d3_talking_f6cf8be7fb__eng: 3.4 ms/frame on cuda
+  S16 en_03_marcus_19eb1ea8_talking_ada35a4a4d__ai-assistant: 3.4 ms/frame on cuda
+  S16 en_03_marcus_19eb1ea8_talking_ada35a4a4d__eng: 3.4 ms/frame on cuda
+  S16 es_01_valeria_aed74c50_talking_003d585d96__ai-assistant: 3.4 ms/frame on cuda
+  S16 es_01_valeria_aed74c50_talking_003d585d96__eng: 3.4 ms/frame on cuda
+  S16 es_03_mateo_884600e1_talking_75d88cda6c__ai-assistant: 3.4 ms/frame on cuda
+  S16 es_03_mateo_884600e1_talking_75d88cda6c__eng: 3.4 ms/frame on cuda
+  S16 japanese_realtime_talking_7d94520b7f__ai-assistant: 3.4 ms/frame on cuda
+  S16 japanese_realtime_talking_7d94520b7f__eng: 3.4 ms/frame on cuda
+  S16 latina_guided_20260925_talking_84c5bc80b8__ai-assistant: 3.4 ms/frame on cuda
+  S16 latina_guided_20260925_talking_84c5bc80b8__eng: 3.4 ms/frame on cuda
+
+[en_01_maya_abe451d3_talking_f6cf8be7fb__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 66.4 dB, flicker ratio mouth 1.000, error flicker 0.029, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.03 px | r5 pass | vs D FAIL
+  S: latent mae 0.1103, mouth PSNR 26.9 dB, flicker ratio mouth 0.936, error flicker 3.664, sharpness 0.963, lip corr 0.9626 lag 0 |d| 1.34 px | r5 FAIL | vs D FAIL
+  S16: latent mae 0.1103, mouth PSNR 26.9 dB, flicker ratio mouth 0.936, error flicker 3.664, sharpness 0.963, lip corr 0.9625 lag 0 |d| 1.35 px | r5 FAIL | vs D FAIL
+  wrote /workspace/distill/out/review/en_01_maya_abe451d3_talking_f6cf8be7fb__ai-assistant in 99.5 s
+
+[en_01_maya_abe451d3_talking_f6cf8be7fb__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 66.4 dB, flicker ratio mouth 1.000, error flicker 0.029, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.03 px | r5 pass | vs D FAIL
+  S: latent mae 0.1071, mouth PSNR 27.1 dB, flicker ratio mouth 0.931, error flicker 3.505, sharpness 0.991, lip corr 0.7835 lag 0 |d| 2.78 px | r5 FAIL | vs D FAIL
+  S16: latent mae 0.1071, mouth PSNR 27.1 dB, flicker ratio mouth 0.931, error flicker 3.505, sharpness 0.991, lip corr 0.7828 lag 0 |d| 2.79 px | r5 FAIL | vs D FAIL
+  wrote /workspace/distill/out/review/en_01_maya_abe451d3_talking_f6cf8be7fb__eng in 95.4 s
+
+[en_03_marcus_19eb1ea8_talking_ada35a4a4d__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 64.2 dB, flicker ratio mouth 1.000, error flicker 0.049, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.04 px | r5 pass | vs D FAIL
+  S: latent mae 0.1040, mouth PSNR 27.6 dB, flicker ratio mouth 0.979, error flicker 4.517, sharpness 0.754, lip corr 0.9426 lag 0 |d| 1.62 px | r5 FAIL | vs D FAIL
+  S16: latent mae 0.1040, mouth PSNR 27.6 dB, flicker ratio mouth 0.979, error flicker 4.517, sharpness 0.754, lip corr 0.9425 lag 0 |d| 1.62 px | r5 FAIL | vs D FAIL
+  wrote /workspace/distill/out/review/en_03_marcus_19eb1ea8_talking_ada35a4a4d__ai-assistant in 86.4 s
+
+[en_03_marcus_19eb1ea8_talking_ada35a4a4d__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 63.9 dB, flicker ratio mouth 1.000, error flicker 0.052, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.04 px | r5 pass | vs D FAIL
+  S: latent mae 0.1008, mouth PSNR 28.1 dB, flicker ratio mouth 0.966, error flicker 4.387, sharpness 0.783, lip corr 0.9163 lag 0 |d| 1.81 px | r5 FAIL | vs D FAIL
+  S16: latent mae 0.1008, mouth PSNR 28.1 dB, flicker ratio mouth 0.966, error flicker 4.387, sharpness 0.783, lip corr 0.9163 lag 0 |d| 1.82 px | r5 FAIL | vs D FAIL
+  wrote /workspace/distill/out/review/en_03_marcus_19eb1ea8_talking_ada35a4a4d__eng in 94.7 s
+
+[es_01_valeria_aed74c50_talking_003d585d96__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 66.8 dB, flicker ratio mouth 1.000, error flicker 0.027, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.03 px | r5 pass | vs D pass
+  S: latent mae 0.0698, mouth PSNR 31.4 dB, flicker ratio mouth 0.944, error flicker 2.413, sharpness 1.009, lip corr 0.9513 lag 0 |d| 1.36 px | r5 FAIL | vs D FAIL
+  S16: latent mae 0.0698, mouth PSNR 31.4 dB, flicker ratio mouth 0.944, error flicker 2.413, sharpness 1.009, lip corr 0.9514 lag 0 |d| 1.35 px | r5 FAIL | vs D FAIL
+  wrote /workspace/distill/out/review/es_01_valeria_aed74c50_talking_003d585d96__ai-assistant in 78.7 s
+
+[es_01_valeria_aed74c50_talking_003d585d96__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 66.9 dB, flicker ratio mouth 1.000, error flicker 0.026, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.03 px | r5 pass | vs D pass
+  S: latent mae 0.0722, mouth PSNR 30.7 dB, flicker ratio mouth 0.949, error flicker 2.369, sharpness 1.043, lip corr 0.8052 lag 0 |d| 2.31 px | r5 FAIL | vs D FAIL
+  S16: latent mae 0.0722, mouth PSNR 30.7 dB, flicker ratio mouth 0.949, error flicker 2.369, sharpness 1.043, lip corr 0.8052 lag 0 |d| 2.31 px | r5 FAIL | vs D FAIL
+  wrote /workspace/distill/out/review/es_01_valeria_aed74c50_talking_003d585d96__eng in 76.5 s
+
+[es_03_mateo_884600e1_talking_75d88cda6c__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 64.5 dB, flicker ratio mouth 1.000, error flicker 0.045, sharpness 1.000, lip corr 0.9999 lag 0 |d| 0.04 px | r5 pass | vs D FAIL
+  S: latent mae 0.0765, mouth PSNR 30.5 dB, flicker ratio mouth 0.941, error flicker 3.591, sharpness 0.947, lip corr 0.9112 lag 0 |d| 1.41 px | r5 FAIL | vs D FAIL
+  S16: latent mae 0.0765, mouth PSNR 30.5 dB, flicker ratio mouth 0.941, error flicker 3.591, sharpness 0.947, lip corr 0.9106 lag 0 |d| 1.41 px | r5 FAIL | vs D FAIL
+  wrote /workspace/distill/out/review/es_03_mateo_884600e1_talking_75d88cda6c__ai-assistant in 75.9 s
+
+[es_03_mateo_884600e1_talking_75d88cda6c__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 64.4 dB, flicker ratio mouth 1.000, error flicker 0.047, sharpness 1.000, lip corr 0.9999 lag 0 |d| 0.04 px | r5 pass | vs D FAIL
+  S: latent mae 0.0771, mouth PSNR 30.0 dB, flicker ratio mouth 0.928, error flicker 3.794, sharpness 0.921, lip corr 0.8978 lag 0 |d| 1.62 px | r5 FAIL | vs D FAIL
+  S16: latent mae 0.0771, mouth PSNR 30.0 dB, flicker ratio mouth 0.928, error flicker 3.794, sharpness 0.921, lip corr 0.8972 lag 0 |d| 1.62 px | r5 FAIL | vs D FAIL
+  wrote /workspace/distill/out/review/es_03_mateo_884600e1_talking_75d88cda6c__eng in 76.1 s
+
+[japanese_realtime_talking_7d94520b7f__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 66.2 dB, flicker ratio mouth 1.000, error flicker 0.031, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.04 px | r5 pass | vs D pass
+  S: latent mae 0.1048, mouth PSNR 26.6 dB, flicker ratio mouth 1.000, error flicker 3.876, sharpness 0.870, lip corr 0.6419 lag -1 |d| 3.29 px | r5 FAIL | vs D FAIL
+  S16: latent mae 0.1048, mouth PSNR 26.6 dB, flicker ratio mouth 1.000, error flicker 3.876, sharpness 0.870, lip corr 0.6421 lag -1 |d| 3.29 px | r5 FAIL | vs D FAIL
+  wrote /workspace/distill/out/review/japanese_realtime_talking_7d94520b7f__ai-assistant in 71.5 s
+
+[japanese_realtime_talking_7d94520b7f__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 66.3 dB, flicker ratio mouth 1.000, error flicker 0.030, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.04 px | r5 pass | vs D pass
+  S: latent mae 0.1039, mouth PSNR 26.8 dB, flicker ratio mouth 0.968, error flicker 3.459, sharpness 0.915, lip corr 0.5377 lag -2 |d| 3.16 px | r5 FAIL | vs D FAIL
+  S16: latent mae 0.1039, mouth PSNR 26.8 dB, flicker ratio mouth 0.968, error flicker 3.460, sharpness 0.915, lip corr 0.5375 lag -2 |d| 3.16 px | r5 FAIL | vs D FAIL
+  wrote /workspace/distill/out/review/japanese_realtime_talking_7d94520b7f__eng in 70.9 s
+
+[latina_guided_20260925_talking_84c5bc80b8__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 66.1 dB, flicker ratio mouth 1.000, error flicker 0.031, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.02 px | r5 pass | vs D FAIL
+  S: latent mae 0.0901, mouth PSNR 29.3 dB, flicker ratio mouth 0.941, error flicker 2.838, sharpness 0.934, lip corr 0.9536 lag 0 |d| 1.53 px | r5 FAIL | vs D FAIL
+  S16: latent mae 0.0901, mouth PSNR 29.3 dB, flicker ratio mouth 0.942, error flicker 2.838, sharpness 0.934, lip corr 0.9536 lag 0 |d| 1.52 px | r5 FAIL | vs D FAIL
+  wrote /workspace/distill/out/review/latina_guided_20260925_talking_84c5bc80b8__ai-assistant in 72.6 s
+
+[latina_guided_20260925_talking_84c5bc80b8__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 66.1 dB, flicker ratio mouth 1.000, error flicker 0.031, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.03 px | r5 pass | vs D FAIL
+  S: latent mae 0.0899, mouth PSNR 29.5 dB, flicker ratio mouth 0.926, error flicker 2.638, sharpness 0.922, lip corr 0.9332 lag 0 |d| 1.86 px | r5 FAIL | vs D FAIL
+  S16: latent mae 0.0899, mouth PSNR 29.5 dB, flicker ratio mouth 0.926, error flicker 2.638, sharpness 0.922, lip corr 0.9331 lag 0 |d| 1.86 px | r5 FAIL | vs D FAIL
+  wrote /workspace/distill/out/review/latina_guided_20260925_talking_84c5bc80b8__eng in 72.2 s
+
+clip                                                     arm  latent mae  lip corr  lip mean abs delta px  lag  mouth PSNR dB  mouth flicker ratio  error flicker mouth  mouth sharpness  r5    vs D
+en_01_maya_abe451d3_talking_f6cf8be7fb__ai-assistant     D    0.0125      0.9982    0.246                  0    46.95          0.995                0.615                1.000            pass  bar 
+en_01_maya_abe451d3_talking_f6cf8be7fb__ai-assistant     N    0.0004      1.0000    0.030                  0    66.44          1.000                0.029                1.000            pass  FAIL
+en_01_maya_abe451d3_talking_f6cf8be7fb__ai-assistant     S    0.1103      0.9626    1.344                  0    26.89          0.936                3.664                0.963            FAIL  FAIL
+en_01_maya_abe451d3_talking_f6cf8be7fb__ai-assistant     S16  0.1103      0.9625    1.346                  0    26.89          0.936                3.664                0.963            FAIL  FAIL
+en_01_maya_abe451d3_talking_f6cf8be7fb__eng              D    0.0122      0.9989    0.202                  0    47.69          0.995                0.585                0.999            pass  bar 
+en_01_maya_abe451d3_talking_f6cf8be7fb__eng              N    0.0004      1.0000    0.031                  0    66.38          1.000                0.029                1.000            pass  FAIL
+en_01_maya_abe451d3_talking_f6cf8be7fb__eng              S    0.1071      0.7835    2.784                  0    27.08          0.931                3.505                0.991            FAIL  FAIL
+en_01_maya_abe451d3_talking_f6cf8be7fb__eng              S16  0.1071      0.7828    2.789                  0    27.08          0.931                3.505                0.991            FAIL  FAIL
+en_03_marcus_19eb1ea8_talking_ada35a4a4d__ai-assistant   D    0.0118      0.9989    0.208                  0    47.31          0.992                0.750                0.975            pass  bar 
+en_03_marcus_19eb1ea8_talking_ada35a4a4d__ai-assistant   N    0.0004      1.0000    0.038                  0    64.16          1.000                0.049                1.000            pass  FAIL
+en_03_marcus_19eb1ea8_talking_ada35a4a4d__ai-assistant   S    0.1040      0.9426    1.623                  0    27.60          0.979                4.517                0.754            FAIL  FAIL
+en_03_marcus_19eb1ea8_talking_ada35a4a4d__ai-assistant   S16  0.1040      0.9425    1.624                  0    27.60          0.979                4.517                0.754            FAIL  FAIL
+en_03_marcus_19eb1ea8_talking_ada35a4a4d__eng            D    0.0115      0.9986    0.236                  0    47.19          0.992                0.768                0.978            pass  bar 
+en_03_marcus_19eb1ea8_talking_ada35a4a4d__eng            N    0.0004      1.0000    0.041                  0    63.88          1.000                0.052                1.000            pass  FAIL
+en_03_marcus_19eb1ea8_talking_ada35a4a4d__eng            S    0.1008      0.9163    1.814                  0    28.11          0.966                4.387                0.783            FAIL  FAIL
+en_03_marcus_19eb1ea8_talking_ada35a4a4d__eng            S16  0.1008      0.9163    1.816                  0    28.11          0.966                4.387                0.783            FAIL  FAIL
+es_01_valeria_aed74c50_talking_003d585d96__ai-assistant  D    0.0132      0.9986    0.211                  0    47.44          1.003                0.554                0.994            pass  bar 
+es_01_valeria_aed74c50_talking_003d585d96__ai-assistant  N    0.0004      1.0000    0.027                  0    66.76          1.000                0.027                1.000            pass  pass
+es_01_valeria_aed74c50_talking_003d585d96__ai-assistant  S    0.0698      0.9513    1.356                  0    31.35          0.944                2.413                1.009            FAIL  FAIL
+es_01_valeria_aed74c50_talking_003d585d96__ai-assistant  S16  0.0698      0.9514    1.353                  0    31.35          0.944                2.413                1.009            FAIL  FAIL
+es_01_valeria_aed74c50_talking_003d585d96__eng           D    0.0130      0.9976    0.236                  0    47.77          1.003                0.527                0.993            pass  bar 
+es_01_valeria_aed74c50_talking_003d585d96__eng           N    0.0004      1.0000    0.029                  0    66.90          1.000                0.026                1.000            pass  pass
+es_01_valeria_aed74c50_talking_003d585d96__eng           S    0.0722      0.8052    2.308                  0    30.66          0.949                2.369                1.043            FAIL  FAIL
+es_01_valeria_aed74c50_talking_003d585d96__eng           S16  0.0722      0.8052    2.307                  0    30.66          0.949                2.369                1.043            FAIL  FAIL
+es_03_mateo_884600e1_talking_75d88cda6c__ai-assistant    D    0.0132      0.9953    0.282                  0    45.92          0.995                0.859                0.986            pass  bar 
+es_03_mateo_884600e1_talking_75d88cda6c__ai-assistant    N    0.0004      0.9999    0.038                  0    64.52          1.000                0.045                1.000            pass  FAIL
+es_03_mateo_884600e1_talking_75d88cda6c__ai-assistant    S    0.0765      0.9112    1.406                  0    30.53          0.941                3.591                0.947            FAIL  FAIL
+es_03_mateo_884600e1_talking_75d88cda6c__ai-assistant    S16  0.0765      0.9106    1.408                  0    30.53          0.941                3.591                0.947            FAIL  FAIL
+es_03_mateo_884600e1_talking_75d88cda6c__eng             D    0.0132      0.9968    0.249                  0    45.53          0.995                0.895                0.983            pass  bar 
+es_03_mateo_884600e1_talking_75d88cda6c__eng             N    0.0004      0.9999    0.036                  0    64.37          1.000                0.047                1.000            pass  FAIL
+es_03_mateo_884600e1_talking_75d88cda6c__eng             S    0.0771      0.8978    1.617                  0    29.97          0.928                3.794                0.921            FAIL  FAIL
+es_03_mateo_884600e1_talking_75d88cda6c__eng             S16  0.0771      0.8972    1.620                  0    29.97          0.928                3.794                0.921            FAIL  FAIL
+japanese_realtime_talking_7d94520b7f__ai-assistant       D    0.0168      0.9629    0.905                  0    39.48          1.001                1.184                0.983            FAIL  bar 
+japanese_realtime_talking_7d94520b7f__ai-assistant       N    0.0004      1.0000    0.040                  0    66.15          1.000                0.031                1.000            pass  pass
+japanese_realtime_talking_7d94520b7f__ai-assistant       S    0.1048      0.6419    3.292                  -1   26.62          1.000                3.876                0.870            FAIL  FAIL
+japanese_realtime_talking_7d94520b7f__ai-assistant       S16  0.1048      0.6421    3.292                  -1   26.62          1.000                3.876                0.870            FAIL  FAIL
+japanese_realtime_talking_7d94520b7f__eng                D    0.0159      0.9560    0.776                  0    40.54          1.006                1.047                0.990            FAIL  bar 
+japanese_realtime_talking_7d94520b7f__eng                N    0.0004      1.0000    0.037                  0    66.29          1.000                0.030                1.000            pass  pass
+japanese_realtime_talking_7d94520b7f__eng                S    0.1039      0.5377    3.160                  -2   26.84          0.968                3.459                0.915            FAIL  FAIL
+japanese_realtime_talking_7d94520b7f__eng                S16  0.1039      0.5375    3.161                  -2   26.84          0.968                3.460                0.915            FAIL  FAIL
+latina_guided_20260925_talking_84c5bc80b8__ai-assistant  D    0.0114      0.9992    0.190                  0    48.59          0.996                0.571                0.993            pass  bar 
+latina_guided_20260925_talking_84c5bc80b8__ai-assistant  N    0.0004      1.0000    0.024                  0    66.10          1.000                0.031                1.000            pass  FAIL
+latina_guided_20260925_talking_84c5bc80b8__ai-assistant  S    0.0901      0.9536    1.527                  0    29.31          0.941                2.838                0.934            FAIL  FAIL
+latina_guided_20260925_talking_84c5bc80b8__ai-assistant  S16  0.0901      0.9536    1.522                  0    29.31          0.942                2.838                0.934            FAIL  FAIL
+latina_guided_20260925_talking_84c5bc80b8__eng           D    0.0114      0.9992    0.207                  0    48.80          0.995                0.560                0.998            pass  bar 
+latina_guided_20260925_talking_84c5bc80b8__eng           N    0.0004      1.0000    0.030                  0    66.14          1.000                0.031                1.000            pass  FAIL
+latina_guided_20260925_talking_84c5bc80b8__eng           S    0.0899      0.9332    1.865                  0    29.49          0.926                2.638                0.922            FAIL  FAIL
+latina_guided_20260925_talking_84c5bc80b8__eng           S16  0.0899      0.9331    1.864                  0    29.49          0.926                2.638                0.922            FAIL  FAIL
+
+VERDICT S: FAIL
+  en_01_maya_abe451d3_talking_f6cf8be7fb__ai-assistant: r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.96255 (bound 0.99817, D 0.99817); vs D lip_mean_abs_delta_px 1.3441 (bound 0.2457, D 0.2457); vs D mouth_psnr_db 26.89 (bound 46.95, D 46.95); vs D mouth_sharpness_ratio 0.9627 (bound 0.9999, D 0.9999); vs D error_flicker_mouth 3.6639 (bound 0.6146, D 0.6146)
+  en_01_maya_abe451d3_talking_f6cf8be7fb__eng: r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.78354 (bound 0.99891, D 0.99891); vs D lip_mean_abs_delta_px 2.7844 (bound 0.202, D 0.202); vs D mouth_psnr_db 27.08 (bound 47.69, D 47.69); vs D mouth_sharpness_ratio 0.9909 (bound 0.9986, D 0.9986); vs D error_flicker_mouth 3.5051 (bound 0.5845, D 0.5845)
+  en_03_marcus_19eb1ea8_talking_ada35a4a4d__ai-assistant: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.94258 (bound 0.99893, D 0.99893); vs D lip_mean_abs_delta_px 1.6229 (bound 0.2081, D 0.2081); vs D mouth_psnr_db 27.6 (bound 47.31, D 47.31); vs D mouth_sharpness_ratio 0.7542 (bound 0.9751, D 0.9751); vs D error_flicker_mouth 4.5168 (bound 0.7498, D 0.7498)
+  en_03_marcus_19eb1ea8_talking_ada35a4a4d__eng: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.91632 (bound 0.9986, D 0.9986); vs D lip_mean_abs_delta_px 1.8142 (bound 0.2362, D 0.2362); vs D mouth_psnr_db 28.11 (bound 47.19, D 47.19); vs D mouth_sharpness_ratio 0.7826 (bound 0.9776, D 0.9776); vs D error_flicker_mouth 4.3873 (bound 0.7681, D 0.7681)
+  es_01_valeria_aed74c50_talking_003d585d96__ai-assistant: r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.95127 (bound 0.99856, D 0.99856); vs D lip_mean_abs_delta_px 1.3557 (bound 0.2111, D 0.2111); vs D mouth_psnr_db 31.35 (bound 47.44, D 47.44); vs D error_flicker_mouth 2.4126 (bound 0.5537, D 0.5537)
+  es_01_valeria_aed74c50_talking_003d585d96__eng: r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.80517 (bound 0.99757, D 0.99757); vs D lip_mean_abs_delta_px 2.3083 (bound 0.2364, D 0.2364); vs D mouth_psnr_db 30.66 (bound 47.77, D 47.77); vs D error_flicker_mouth 2.3689 (bound 0.5267, D 0.5267)
+  es_03_mateo_884600e1_talking_75d88cda6c__ai-assistant: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.91118 (bound 0.99527, D 0.99527); vs D lip_mean_abs_delta_px 1.4059 (bound 0.2818, D 0.2818); vs D mouth_psnr_db 30.53 (bound 45.92, D 45.92); vs D mouth_sharpness_ratio 0.9472 (bound 0.9858, D 0.9858); vs D error_flicker_mouth 3.5906 (bound 0.8589, D 0.8589)
+  es_03_mateo_884600e1_talking_75d88cda6c__eng: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.89782 (bound 0.99681, D 0.99681); vs D lip_mean_abs_delta_px 1.6168 (bound 0.2488, D 0.2488); vs D mouth_psnr_db 29.97 (bound 45.53, D 45.53); vs D mouth_sharpness_ratio 0.9209 (bound 0.9831, D 0.9831); vs D error_flicker_mouth 3.7936 (bound 0.895, D 0.895)
+  japanese_realtime_talking_7d94520b7f__ai-assistant: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_lag_0; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.64187 (bound 0.96293, D 0.96293); vs D lip_mean_abs_delta_px 3.2919 (bound 0.9047, D 0.9047); vs D mouth_psnr_db 26.62 (bound 39.48, D 39.48); vs D mouth_sharpness_ratio 0.8696 (bound 0.983, D 0.983); vs D error_flicker_mouth 3.8757 (bound 1.1836, D 1.1836)
+  japanese_realtime_talking_7d94520b7f__eng: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_lag_0; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.53769 (bound 0.956, D 0.956); vs D lip_mean_abs_delta_px 3.1598 (bound 0.7765, D 0.7765); vs D mouth_psnr_db 26.84 (bound 40.54, D 40.54); vs D mouth_sharpness_ratio 0.9149 (bound 0.9896, D 0.9896); vs D error_flicker_mouth 3.4595 (bound 1.0473, D 1.0473)
+  latina_guided_20260925_talking_84c5bc80b8__ai-assistant: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.95355 (bound 0.99921, D 0.99921); vs D lip_mean_abs_delta_px 1.5268 (bound 0.1896, D 0.1896); vs D mouth_psnr_db 29.31 (bound 48.59, D 48.59); vs D mouth_sharpness_ratio 0.9337 (bound 0.9933, D 0.9933); vs D error_flicker_mouth 2.8377 (bound 0.5705, D 0.5705)
+  latina_guided_20260925_talking_84c5bc80b8__eng: r5 mouth_sharpness_ratio_ge_0.95; r5 aperture_corr_ge_0.97; r5 aperture_mean_abs_delta_le_0.5px; vs D lip_corr 0.93318 (bound 0.99923, D 0.99923); vs D lip_mean_abs_delta_px 1.8648 (bound 0.2066, D 0.2066); vs D mouth_psnr_db 29.49 (bound 48.8, D 48.8); vs D mouth_sharpness_ratio 0.922 (bound 0.9977, D 0.9977); vs D error_flicker_mouth 2.638 (bound 0.5599, D 0.5599)
+S16 (informational): FAIL; r5 pass clips N 12, S 0, S16 0 of 12
+wrote /workspace/distill/out/review/summary.json and /workspace/distill/out/review/summary.md
+REVIEW_DONE
+[box_job] [2026-11-04T06:07:09Z] STATUS packaging

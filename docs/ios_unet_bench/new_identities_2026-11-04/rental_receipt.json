@@ -1,0 +1,192 @@
+{
+  "after_cleanup": {
+    "cleanup": {
+      "at_utc": "2026-11-04T16:42:03.892208+00:00",
+      "instance_id": "59107834",
+      "provider_absence_verified": true,
+      "state": null
+    },
+    "expiry_timer": "inactive",
+    "ledger": {
+      "create_requests": 1,
+      "deadline_utc": "2026-11-04T17:07:23+00:00",
+      "disk_gb": 100,
+      "instance_id": "59107834",
+      "label": "mtboot-ni30-r1-20261104a",
+      "launch": "stock",
+      "lifetime_seconds": 14400,
+      "price_cap_per_hour": 0.3,
+      "provider_accepted_utc": "2026-11-04T13:07:23.356421+00:00",
+      "rent_per_hour": 0.26144097222222223,
+      "request_started_utc": "2026-11-04T13:07:23.055822+00:00",
+      "source_revision": "4e2b02e5cb72cce94f415bce8099222fb25b8156",
+      "state": "cleaned",
+      "template_hash_id": null,
+      "transfer_cap_per_gb": 0.0015
+    },
+    "offer": {
+      "dph_total": 0.2288888888888889,
+      "dph_total_adj": 0.26144097222222223,
+      "gpu_name": "RTX 3090",
+      "inet_down_cost": 0.0013020833333333333,
+      "inet_up_cost": 0.0013020833333333333,
+      "machine_id": 136634,
+      "num_gpus": 1,
+      "storage_cost": 0.39999999999999997
+    },
+    "provider_absent": true,
+    "request_shape": {
+      "image": "vastai/pytorch:cuda-12.1-auto",
+      "runtype": "ssh_direc ssh_proxy",
+      "template_hash_id": null
+    },
+    "verified_at_utc": "2026-11-04T16:42:34.405490+00:00"
+  },
+  "aws_transport": {
+    "free_tier_assumed": false,
+    "input_transport_allowance_usd": 0.25,
+    "invoice_confirmed": false,
+    "limitations": "Allowance, not a posted charge or guaranteed cap. Extra/retried downloads, undeleted versions, or longer retention can increase actual AWS charges. No free-tier credits assumed; tax excluded.",
+    "method": "Round UP to the next cent: $0.25 input allowance + result archive decimal GB \u00d7 $0.09 + $0.01 requests/storage.",
+    "primary_sources": {
+      "multipart_accounting": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html",
+      "s3_pricing": "https://aws.amazon.com/s3/pricing/",
+      "us_east_1_storage_and_requests": "https://docs.aws.amazon.com/solutions/latest/live-streaming-on-aws-with-amazon-s3/cost-example-1.html"
+    },
+    "request_storage_allowance_usd": 0.01,
+    "result_download_bytes": 291880960,
+    "result_download_estimated_usd": 0.0262692864,
+    "result_download_rate_usd_per_decimal_gb": 0.09,
+    "rounded_up_allowance_usd": 0.29,
+    "tax_included": false
+  },
+  "before_cleanup": {
+    "expiry_timer": "active",
+    "ledger": {
+      "create_requests": 1,
+      "deadline_utc": "2026-11-04T17:07:23+00:00",
+      "disk_gb": 100,
+      "instance_id": "59107834",
+      "label": "mtboot-ni30-r1-20261104a",
+      "launch": "stock",
+      "lifetime_seconds": 14400,
+      "price_cap_per_hour": 0.3,
+      "provider_accepted_utc": "2026-11-04T13:07:23.356421+00:00",
+      "rent_per_hour": 0.26144097222222223,
+      "request_started_utc": "2026-11-04T13:07:23.055822+00:00",
+      "source_revision": "4e2b02e5cb72cce94f415bce8099222fb25b8156",
+      "state": "created",
+      "template_hash_id": null,
+      "transfer_cap_per_gb": 0.0015
+    },
+    "network": {
+      "at_utc": "2026-11-04T16:41:42.300646+00:00",
+      "interface": "eth0",
+      "rx_bytes": 9897578634,
+      "tx_bytes": 367821747
+    },
+    "offer": {
+      "dph_total": 0.2288888888888889,
+      "dph_total_adj": 0.26144097222222223,
+      "gpu_name": "RTX 3090",
+      "inet_down_cost": 0.0013020833333333333,
+      "inet_up_cost": 0.0013020833333333333,
+      "machine_id": 136634,
+      "num_gpus": 1,
+      "storage_cost": 0.39999999999999997
+    },
+    "provider_absent": false,
+    "request_shape": {
+      "image": "vastai/pytorch:cuda-12.1-auto",
+      "runtype": "ssh_direc ssh_proxy",
+      "template_hash_id": null
+    },
+    "verified_at_utc": "2026-11-04T16:41:38.709036+00:00"
+  },
+  "budget_cap_usd": 10,
+  "combined_estimated_usd": 2.961484693070882,
+  "estimated_under_budget": true,
+  "evidence_sha256": {
+    ".runtime/new_identity_audit/new-after.json": "3540efcb2f755b3edeb2c9a3b919913768ccaf8b556371bd06cac699a9dca1bd",
+    ".runtime/new_identity_audit/new-before.json": "79e8fbbefeafd43ae17890cacd52471b46ecb13b6e5858045de834a64db412f6",
+    ".runtime/new_identity_audit/results.tar.metadata.json": "ce8668ab6144f713f375f01e2e91c69701a69151e17bea9b502bd17640ff992c",
+    ".runtime/new_identity_audit/temporary_inputs_cleanup.json": "363b5d00ddcb82bb91dbc48ccb9f555db86e2f389ebf0f236df26c2375ba0bd1",
+    ".runtime/new_identity_audit/temporary_results_cleanup.json": "bfb6105da6ef30781cf11512ddae1df0361e8eaf4aa1530e912b0647ac03caf9"
+  },
+  "instance_id": "59107834",
+  "invoice_confirmed": false,
+  "prior_rentals": [
+    {
+      "estimated_usd": 0.7629470925641059,
+      "instance_id": "59051256",
+      "receipt": "docs/ios_unet_bench/small_unets_2026-11-03/round1/rental_receipt.json",
+      "receipt_sha256": "481c94e76185ed5e1c1ebb84a005cac51dbb3785f84f01822e783a7de2d6d582",
+      "round": "round1"
+    },
+    {
+      "estimated_usd": 0.9597327527075665,
+      "instance_id": "59067440",
+      "receipt": "docs/ios_unet_bench/small_unets_2026-11-03/round2/rental_receipt.json",
+      "receipt_sha256": "ca3a96a43c83e02884b86ba977b32882b374bdaf2236ea64645d540dcb580ef5",
+      "round": "round2"
+    }
+  ],
+  "prior_two_estimated_usd": 1.7226798452716725,
+  "quality_verdict_not_inferred_from_transport": true,
+  "rental_spend": {
+    "dwell_hours_upper": 3.5780101072222226,
+    "estimated_time_usd": 0.9354384410531155,
+    "estimated_transfer_usd": 0.01336640674609375,
+    "estimated_usd": 0.9488048477992093,
+    "hourly_rate_used": 0.26144097222222223,
+    "invoice_confirmed": false,
+    "limitations": "Not an invoice; container counters may omit host/image traffic and transfers after the final snapshot; tax excluded.",
+    "method": "Create request through cleanup provider-absence verification, at the higher quoted ledger hourly rate (disk included), plus owned eth0 decimal-GB counters at quoted rates."
+  },
+  "result_archive": {
+    "bytes": 291880960,
+    "done": "ok",
+    "server_side_encryption": "AES256",
+    "sha256": "6b794b6da0223b09580fefd18d80b82f4bf55dad368de7869166dfe84eae10cc",
+    "verified_local_sha256": "6b794b6da0223b09580fefd18d80b82f4bf55dad368de7869166dfe84eae10cc"
+  },
+  "run": "ni30-r1-20261104a",
+  "schema": "ni30_final_cost_receipt_v1",
+  "tax_included": false,
+  "temporary_s3_cleanup": {
+    "input_objects": {
+      "bucket": "lingua-musetalk-s3-storage",
+      "objects": [
+        {
+          "bytes": 1347215360,
+          "key": "ios_bench/temporary-validation/ni30-r1-20261104a/inputs.tar",
+          "provider_absent": true,
+          "version_specific_delete": true
+        },
+        {
+          "bytes": 8388608,
+          "key": "ios_bench/temporary-validation/ni30-r1-20261104a/transfer_probe.bin",
+          "provider_absent": true,
+          "version_specific_delete": true
+        }
+      ],
+      "only_task_owned_keys_removed": true,
+      "verified_at_utc": "2026-11-04T14:50:47.494502+00:00"
+    },
+    "result_object": {
+      "bucket": "lingua-musetalk-s3-storage",
+      "objects": [
+        {
+          "bucket_versioning_disabled": false,
+          "bytes": 291880960,
+          "delete_mode": "specific-version",
+          "key": "ios_bench/temporary-validation/ni30-r1-20261104a/results.tar",
+          "provider_absent": true,
+          "version_specific_delete": true
+        }
+      ],
+      "only_task_owned_keys_removed": true,
+      "verified_at_utc": "2026-11-04T16:41:47.899317+00:00"
+    }
+  }
+}

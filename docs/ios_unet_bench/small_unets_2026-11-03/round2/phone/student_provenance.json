@@ -1,0 +1,47 @@
+{
+  "name": "unet_bk_tiny_r2_selected_int8w_b1",
+  "file": "unet_bk_tiny_r2_selected_int8w_b1.mlmodelc",
+  "kind": "unet",
+  "batch": 1,
+  "variant": "int8w",
+  "layout": "diffusers",
+  "mlpackage_bytes": 318880199,
+  "chunk_of": null,
+  "chunk_index": null,
+  "inputs": [
+    {
+      "name": "sample",
+      "shape": [
+        1,
+        8,
+        32,
+        32
+      ],
+      "dtype": "float16"
+    },
+    {
+      "name": "audio",
+      "shape": [
+        1,
+        50,
+        384
+      ],
+      "dtype": "float16"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "pred_latents",
+      "shape": [
+        1,
+        4,
+        32,
+        32
+      ],
+      "dtype": "float16"
+    }
+  ],
+  "distilled_weights": "/Users/ahmadsmacair/code/musetalk-ios-bench/models/ios_bench/distilled/round2_bk_tiny_best.pt",
+  "distilled_weights_sha256": "a05d2d98f69b431252458d3b25f72e395d557ba693821baee91d11f5fe5a96cd",
+  "note": "Trained plain bk_tiny; cloned architecture/IO metadata from untrained tiny; phone speed A/B only"
+}

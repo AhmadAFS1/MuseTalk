@@ -1,0 +1,19 @@
+{
+  "only_manifest_difference": {
+    "steps": [
+      30000,
+      100000
+    ]
+  },
+  "data_audio_hashes_split_and_other_hyperparameters_identical": true,
+  "teacher_file_matches_established_Mac_reference": {
+    "sha256": "7ebf6c98c181e20838e4c0054e96e944ac60d5d692cc01db42839fe11b787007",
+    "bytes": 3400074924
+  },
+  "teacher_gate_mae_R1": 0.00027554386178962886,
+  "teacher_gate_mae_R2": 0.00027625486836768687,
+  "teacher_gate_max_abs_R1": 0.06298828125,
+  "teacher_gate_max_abs_R2": 0.048095703125,
+  "initial_student_gate_mae_R1": 0.30561041831970215,
+  "note": "FP16 teacher gate scores show small runtime numerical variation; file SHA matches the established reference. No precision or algorithm setting changed."
+}

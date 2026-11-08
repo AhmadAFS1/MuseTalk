@@ -1,0 +1,109 @@
+{
+  "run": "dt-r1-20261103a",
+  "instance_id": "59051256",
+  "before_cleanup": {
+    "verified_at_utc": "2026-11-04T06:17:23.747994+00:00",
+    "ledger": {
+      "label": "mtboot-dt-r1-20261103a",
+      "state": "created",
+      "instance_id": "59051256",
+      "create_requests": 1,
+      "source_revision": "4e2b02e5cb72cce94f415bce8099222fb25b8156",
+      "launch": "stock",
+      "template_hash_id": null,
+      "request_started_utc": "2026-11-04T03:34:52.452390+00:00",
+      "provider_accepted_utc": "2026-11-04T03:34:53.188883+00:00",
+      "deadline_utc": "2026-11-04T07:34:52+00:00",
+      "lifetime_seconds": 14400,
+      "rent_per_hour": 0.27477430555555554,
+      "price_cap_per_hour": 0.3,
+      "transfer_cap_per_gb": 0.0015,
+      "disk_gb": 100
+    },
+    "offer": {
+      "gpu_name": "RTX 3090",
+      "num_gpus": 1,
+      "machine_id": 136634,
+      "dph_total": 0.24222222222222223,
+      "dph_total_adj": 0.27477430555555554,
+      "storage_cost": 0.39999999999999997,
+      "inet_down_cost": 0.0013020833333333333,
+      "inet_up_cost": 0.0013020833333333333
+    },
+    "request_shape": {
+      "image": "vastai/pytorch:cuda-12.1-auto",
+      "runtype": "ssh_direc ssh_proxy",
+      "template_hash_id": null
+    },
+    "provider_absent": false,
+    "expiry_timer": "active",
+    "provider_numeric_rates": {
+      "dph_base": 0.18666666666666668,
+      "dph_total": 0.24222222222222223,
+      "storage_total_cost": 0.05555555555555555,
+      "inet_down_cost": 0.0013020833333333333,
+      "inet_up_cost": 0.0013020833333333333,
+      "inet_down_billed": 9762242.56,
+      "inet_up_billed": 1593835.52
+    },
+    "network": {
+      "at_utc": "2026-11-04T06:17:27.102350+00:00",
+      "interface": "eth0",
+      "rx_bytes": 9319339235,
+      "tx_bytes": 3087823333
+    }
+  },
+  "after_cleanup": {
+    "verified_at_utc": "2026-11-04T06:18:19.145379+00:00",
+    "ledger": {
+      "label": "mtboot-dt-r1-20261103a",
+      "state": "cleaned",
+      "instance_id": "59051256",
+      "create_requests": 1,
+      "source_revision": "4e2b02e5cb72cce94f415bce8099222fb25b8156",
+      "launch": "stock",
+      "template_hash_id": null,
+      "request_started_utc": "2026-11-04T03:34:52.452390+00:00",
+      "provider_accepted_utc": "2026-11-04T03:34:53.188883+00:00",
+      "deadline_utc": "2026-11-04T07:34:52+00:00",
+      "lifetime_seconds": 14400,
+      "rent_per_hour": 0.27477430555555554,
+      "price_cap_per_hour": 0.3,
+      "transfer_cap_per_gb": 0.0015,
+      "disk_gb": 100
+    },
+    "offer": {
+      "gpu_name": "RTX 3090",
+      "num_gpus": 1,
+      "machine_id": 136634,
+      "dph_total": 0.24222222222222223,
+      "dph_total_adj": 0.27477430555555554,
+      "storage_cost": 0.39999999999999997,
+      "inet_down_cost": 0.0013020833333333333,
+      "inet_up_cost": 0.0013020833333333333
+    },
+    "request_shape": {
+      "image": "vastai/pytorch:cuda-12.1-auto",
+      "runtype": "ssh_direc ssh_proxy",
+      "template_hash_id": null
+    },
+    "provider_absent": true,
+    "expiry_timer": "inactive",
+    "cleanup": {
+      "at_utc": "2026-11-04T06:17:56.667669+00:00",
+      "provider_absence_verified": true,
+      "state": null,
+      "instance_id": "59051256"
+    }
+  },
+  "spend": {
+    "estimated_usd": 0.7629470925641059,
+    "estimated_time_usd": 0.7467919329703558,
+    "estimated_transfer_usd": 0.01615515959375,
+    "dwell_hours_upper": 2.7178375775,
+    "hourly_rate_used": 0.27477430555555554,
+    "invoice_confirmed": false,
+    "method": "Create request through verified provider absence at the higher ledger hourly quote, plus eth0 decimal-GB byte counters at quoted transfer rates. Disk is included in the hourly total.",
+    "limitations": "Invoice API unavailable with current credential; container counters may omit host/image traffic. Estimate, not a posted charge."
+  }
+}

@@ -1,0 +1,50 @@
+{
+ "full": {
+  "params_m": 849.9,
+  "gflops": 177.8,
+  "path": "models/ios_bench/coreml/unet_int8w_b1.mlpackage",
+  "mac_ane_ms": 23.768385890871286,
+  "mac_ane_p90_ms": 24.161832872778177
+ },
+ "bk_base": {
+  "params_m": 573.3,
+  "gflops": 117.0,
+  "layers_per_block": 1,
+  "path": "models/ios_bench/coreml/small/unet_bk_base_int8w_b1.mlpackage",
+  "mac_ane_ms": 15.184607477858663,
+  "mac_ane_p90_ms": 15.505083138123155
+ },
+ "bk_small": {
+  "params_m": 477.2,
+  "gflops": 113.9,
+  "layers_per_block": 1,
+  "mid_block_type": null,
+  "path": "models/ios_bench/coreml/small/unet_bk_small_int8w_b1.mlpackage",
+  "mac_ane_ms": 14.214480887167156,
+  "mac_ane_p90_ms": 14.3589589279145
+ },
+ "bk_tiny": {
+  "params_m": 318.2,
+  "gflops": 107.6,
+  "layers_per_block": 1,
+  "mid_block_type": null,
+  "block_out_channels": [
+   320,
+   640,
+   1280
+  ],
+  "down_block_types": [
+   "CrossAttnDownBlock2D",
+   "CrossAttnDownBlock2D",
+   "CrossAttnDownBlock2D"
+  ],
+  "up_block_types": [
+   "CrossAttnUpBlock2D",
+   "CrossAttnUpBlock2D",
+   "CrossAttnUpBlock2D"
+  ],
+  "path": "models/ios_bench/coreml/small/unet_bk_tiny_int8w_b1.mlpackage",
+  "mac_ane_ms": 13.1283999979496,
+  "mac_ane_p90_ms": 13.401415897533298
+ }
+}

@@ -1,0 +1,242 @@
+{
+  "clip": "ni30_05__eng",
+  "identity": "ni30_05",
+  "audio": "/workspace/new_identity_review/out/prepared/audio/eng.wav",
+  "frames": 250,
+  "fps": 25,
+  "frame_size": [
+    512,
+    896
+  ],
+  "face_box": [
+    147,
+    285,
+    236,
+    300
+  ],
+  "mouth_box": [
+    200,
+    477,
+    138,
+    84
+  ],
+  "box_source": "facemesh_lips_A",
+  "arms": {
+    "A": "full UNet fp32, TF32 off, NVIDIA GeForce RTX 3090 + torch TAESD fp32",
+    "N": "full UNet fp16, NVIDIA GeForce RTX 3090 + torch TAESD fp32",
+    "S": "student bk_tiny_best.pt fp32, TF32 off, NVIDIA GeForce RTX 3090 + torch TAESD fp32",
+    "S16": "student bk_tiny_best.pt fp16, NVIDIA GeForce RTX 3090 + torch TAESD fp32"
+  },
+  "unet_ms_per_frame": {
+    "A": 15.77,
+    "N": 6.02,
+    "S": 8.07,
+    "S16": 3.32
+  },
+  "latent_vs_A": {
+    "N": {
+      "mae": 0.00039,
+      "max_abs": 0.0268,
+      "p95_abs": 0.0011
+    },
+    "S": {
+      "mae": 0.09809,
+      "max_abs": 4.4026,
+      "p95_abs": 0.4124
+    },
+    "S16": {
+      "mae": 0.09809,
+      "max_abs": 4.4024,
+      "p95_abs": 0.4125
+    }
+  },
+  "error_flicker_mouth": {
+    "N": 0.0347,
+    "S": 2.7674,
+    "S16": 2.7674
+  },
+  "error_flicker_face": {
+    "N": 0.0093,
+    "S": 0.5613,
+    "S16": 0.5614
+  },
+  "aperture": {
+    "N_vs_A": {
+      "frames": 250,
+      "corr": 0.99997,
+      "lag_frames": 0,
+      "mean_abs_delta_px": 0.0256,
+      "p95_abs_delta_px": 0.0964,
+      "mean_aperture_px_A": 7.03,
+      "mean_aperture_px_B": 7.029
+    },
+    "S_vs_A": {
+      "frames": 250,
+      "corr": 0.93876,
+      "lag_frames": 0,
+      "mean_abs_delta_px": 1.3948,
+      "p95_abs_delta_px": 3.9394,
+      "mean_aperture_px_A": 7.03,
+      "mean_aperture_px_B": 6.623
+    },
+    "S16_vs_A": {
+      "frames": 250,
+      "corr": 0.93894,
+      "lag_frames": 0,
+      "mean_abs_delta_px": 1.3945,
+      "p95_abs_delta_px": 3.962,
+      "mean_aperture_px_A": 7.03,
+      "mean_aperture_px_B": 6.621
+    }
+  },
+  "N_vs_A": {
+    "raw_face": {
+      "mae_255": 0.0203,
+      "max_abs_255": 4,
+      "psnr_db": 65.05
+    },
+    "face_box": {
+      "psnr_db": 71.38,
+      "ssim": 0.99996,
+      "flicker_ref": 0.5963,
+      "flicker_cand": 0.5963,
+      "flicker_ratio": 1.0
+    },
+    "mouth_roi": {
+      "psnr_db": 65.63,
+      "ssim": 0.99985,
+      "flicker_ref": 2.8792,
+      "flicker_cand": 2.8791,
+      "flicker_ratio": 1.0
+    },
+    "mouth_sharpness": {
+      "ref": 33.59,
+      "cand": 33.6,
+      "ratio": 1.0004
+    },
+    "lab_shift_face_box": 0.0024
+  },
+  "S_vs_A": {
+    "raw_face": {
+      "mae_255": 3.4729,
+      "max_abs_255": 201,
+      "psnr_db": 28.31
+    },
+    "face_box": {
+      "psnr_db": 34.19,
+      "ssim": 0.97988,
+      "flicker_ref": 0.5963,
+      "flicker_cand": 0.5051,
+      "flicker_ratio": 0.8471
+    },
+    "mouth_roi": {
+      "psnr_db": 26.71,
+      "ssim": 0.89621,
+      "flicker_ref": 2.8792,
+      "flicker_cand": 2.4517,
+      "flicker_ratio": 0.8515
+    },
+    "mouth_sharpness": {
+      "ref": 33.59,
+      "cand": 21.64,
+      "ratio": 0.6441
+    },
+    "lab_shift_face_box": 0.0839
+  },
+  "S16_vs_A": {
+    "raw_face": {
+      "mae_255": 3.473,
+      "max_abs_255": 201,
+      "psnr_db": 28.31
+    },
+    "face_box": {
+      "psnr_db": 34.19,
+      "ssim": 0.97987,
+      "flicker_ref": 0.5963,
+      "flicker_cand": 0.505,
+      "flicker_ratio": 0.847
+    },
+    "mouth_roi": {
+      "psnr_db": 26.7,
+      "ssim": 0.89619,
+      "flicker_ref": 2.8792,
+      "flicker_cand": 2.4515,
+      "flicker_ratio": 0.8515
+    },
+    "mouth_sharpness": {
+      "ref": 33.59,
+      "cand": 21.63,
+      "ratio": 0.6438
+    },
+    "lab_shift_face_box": 0.0835
+  },
+  "latent_S16_vs_S_mae": 0.00027,
+  "D": null,
+  "protocol": "new_static_avatars_r5_v1",
+  "avatar_kind": "static_portrait; head/body frozen",
+  "landmark_coverage": {
+    "A": 250,
+    "N": 250,
+    "S": 250,
+    "S16": 250
+  },
+  "vs_D": {
+    "N": {
+      "status": "not_evaluated",
+      "checks": {},
+      "incomplete_because": [
+        "new identities: no shipped-chain D baseline was measured"
+      ]
+    },
+    "S": {
+      "status": "not_evaluated",
+      "checks": {},
+      "incomplete_because": [
+        "new identities: no shipped-chain D baseline was measured"
+      ]
+    },
+    "S16": {
+      "status": "not_evaluated",
+      "checks": {},
+      "incomplete_because": [
+        "new identities: no shipped-chain D baseline was measured"
+      ]
+    }
+  },
+  "r5_gates_N": {
+    "flicker_mouth_ratio_le_1.05": true,
+    "flicker_face_ratio_le_1.05": true,
+    "mouth_sharpness_ratio_ge_0.95": true,
+    "aperture_corr_ge_0.97": true,
+    "aperture_lag_0": true,
+    "aperture_mean_abs_delta_le_0.5px": true,
+    "all_pass": true
+  },
+  "r5_gates_S": {
+    "flicker_mouth_ratio_le_1.05": true,
+    "flicker_face_ratio_le_1.05": true,
+    "mouth_sharpness_ratio_ge_0.95": false,
+    "aperture_corr_ge_0.97": false,
+    "aperture_lag_0": true,
+    "aperture_mean_abs_delta_le_0.5px": false,
+    "all_pass": false
+  },
+  "r5_gates_S16": {
+    "flicker_mouth_ratio_le_1.05": true,
+    "flicker_face_ratio_le_1.05": true,
+    "mouth_sharpness_ratio_ge_0.95": false,
+    "aperture_corr_ge_0.97": false,
+    "aperture_lag_0": true,
+    "aperture_mean_abs_delta_le_0.5px": false,
+    "all_pass": false
+  },
+  "files": {
+    "dir": "/workspace/new_identity_review/out/review/ni30_05__eng",
+    "labelled": "ni30_05__eng_AS.mp4",
+    "A": "A.mp4",
+    "N": "N.mp4",
+    "S": "S.mp4",
+    "S16": "S16.mp4"
+  },
+  "wall_s": 56.2
+}

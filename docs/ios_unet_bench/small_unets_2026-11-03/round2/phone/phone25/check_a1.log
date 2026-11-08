@@ -1,0 +1,640 @@
+== 03:59:09 --autorun --sustained 0 --chain 0 --no-gpu --no-b4 --no-whisper --no-plan --no-reload --units CPU_AND_NE --exit --frames 20 --models unet_anev2fc0_int8w_b1_chunked,unet_bk_tiny_r2_selected_int8w_b1
+Launched application with com.lingua.musetalkbench bundle identifier.
+Waiting for the application to terminate…
+[bench] free disk 25594 MB (mem 15 MB, 3056 MB left)
+[bench] device: iPhone13,3 D53pAP iOS Version 26.2 (Build 23C55), 5.58 GB, thermal nominal, runtime iOS
+[bench] UNets: unet_anev2fc0_int8w_b1_chunked (2 stages), unet_bk_tiny_r2_selected_int8w_b1 (1 stage)
+[bench] unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: loading 2 stage(s) (mem 15 MB, 3056 MB left)
+[bench] unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: loaded in 26.33 s ["11.36", "14.97"] (mem 53 MB, 3018 MB left)
+[bench] unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: first prediction 65.38 ms (mem 75 MB, 2996 MB left)
+[bench] unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: gate mae mean 0.01316 / max 0.01875; max_abs max 1.0327; 128 frames; FAIL
+[bench] unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: 54.33 ms/frame mean, p99 56.81, max 57.22 over 20 calls of 1 (mem 56 MB, 3015 MB left)
+[bench] settling 5.0 s (mem 37 MB, 3034 MB left)
+[bench] unet_bk_tiny_r2_selected_int8w_b1 [CPU_AND_NE]: loading 1 stage(s) (mem 37 MB, 3034 MB left)
+[bench] unet_bk_tiny_r2_selected_int8w_b1 [CPU_AND_NE]: loaded in 10.92 s ["10.92"] (mem 34 MB, 3037 MB left)
+[bench] unet_bk_tiny_r2_selected_int8w_b1 [CPU_AND_NE]: first prediction 33.91 ms (mem 40 MB, 3031 MB left)
+[bench] unet_bk_tiny_r2_selected_int8w_b1 [CPU_AND_NE]: gate mae mean 0.09645 / max 0.11385; max_abs max 5.0215; 128 frames; FAIL
+[bench] unet_bk_tiny_r2_selected_int8w_b1 [CPU_AND_NE]: 33.31 ms/frame mean, p99 34.25, max 34.30 over 20 calls of 1 (mem 40 MB, 3031 MB left)
+[bench] settling 5.0 s (mem 34 MB, 3037 MB left)
+[bench] done
+BENCH_JSON_BEGIN
+{
+  "bundle_created" : "2026-10-31T17:46:14",
+  "chains" : [
+
+  ],
+  "device" : {
+    "chip" : "",
+    "cpu_count" : 6,
+    "low_power_mode" : false,
+    "machine" : "iPhone13,3",
+    "memory_gb" : 5.58,
+    "model" : "D53pAP",
+    "os" : "iOS",
+    "os_version" : "Version 26.2 (Build 23C55)",
+    "runtime" : "iOS",
+    "thermal_state" : "nominal"
+  },
+  "finished" : "2026-11-04T10:00:09Z",
+  "gate" : {
+    "mae" : 0.01,
+    "max_abs" : 0.5,
+    "source" : "scripts\/validate_unet_backend.py per-file thresholds"
+  },
+  "harness_version" : "1",
+  "log" : [
+    "free disk 25594 MB (mem 15 MB, 3056 MB left)",
+    "device: iPhone13,3 D53pAP iOS Version 26.2 (Build 23C55), 5.58 GB, thermal nominal, runtime iOS",
+    "UNets: unet_anev2fc0_int8w_b1_chunked (2 stages), unet_bk_tiny_r2_selected_int8w_b1 (1 stage)",
+    "unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: loading 2 stage(s) (mem 15 MB, 3056 MB left)",
+    "unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: loaded in 26.33 s [\"11.36\", \"14.97\"] (mem 53 MB, 3018 MB left)",
+    "unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: first prediction 65.38 ms (mem 75 MB, 2996 MB left)",
+    "unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: gate mae mean 0.01316 \/ max 0.01875; max_abs max 1.0327; 128 frames; FAIL",
+    "unet_anev2fc0_int8w_b1_chunked [CPU_AND_NE]: 54.33 ms\/frame mean, p99 56.81, max 57.22 over 20 calls of 1 (mem 56 MB, 3015 MB left)",
+    "settling 5.0 s (mem 37 MB, 3034 MB left)",
+    "unet_bk_tiny_r2_selected_int8w_b1 [CPU_AND_NE]: loading 1 stage(s) (mem 37 MB, 3034 MB left)",
+    "unet_bk_tiny_r2_selected_int8w_b1 [CPU_AND_NE]: loaded in 10.92 s [\"10.92\"] (mem 34 MB, 3037 MB left)",
+    "unet_bk_tiny_r2_selected_int8w_b1 [CPU_AND_NE]: first prediction 33.91 ms (mem 40 MB, 3031 MB left)",
+    "unet_bk_tiny_r2_selected_int8w_b1 [CPU_AND_NE]: gate mae mean 0.09645 \/ max 0.11385; max_abs max 5.0215; 128 frames; FAIL",
+    "unet_bk_tiny_r2_selected_int8w_b1 [CPU_AND_NE]: 33.31 ms\/frame mean, p99 34.25, max 34.30 over 20 calls of 1 (mem 40 MB, 3031 MB left)",
+    "settling 5.0 s (mem 34 MB, 3037 MB left)"
+  ],
+  "mac_reference" : {
+    "ane_layout_bench" : {
+      "host" : {
+        "chip" : "Apple M5 Pro",
+        "macos" : "27.0.1"
+      },
+      "measured_at" : "2026-10-30T17:59:04-0500",
+      "results" : [
+        {
+          "ane_load_s" : 11.6,
+          "ane_ms_per_call" : 22.63,
+          "ane_ms_per_frame" : 22.626,
+          "ane_p90_ms_per_frame" : 22.69,
+          "batch" : 1,
+          "bytes" : 1703013161,
+          "compute_plan_ops_by_device" : {
+            "NeuralEngine" : 3049
+          },
+          "face_mae_255" : 0.4336286187171936,
+          "face_max_abs_255" : 12.75041389465332,
+          "fps_single_stream_unet_only" : 44.2,
+          "kind" : "unet",
+          "latent_mae" : 0.012313341721892357,
+          "latent_max_abs" : 0.3589463233947754,
+          "mb" : 1624,
+          "name" : "unet_ane_fp16_b1",
+          "rss_mb_after" : 548,
+          "variant" : "ane_fp16",
+          "weight_bytes_per_frame_mb" : 1624.1
+        },
+        {
+          "ane_load_s" : 8.9,
+          "ane_ms_per_call" : 18.87,
+          "ane_ms_per_frame" : 18.867,
+          "ane_p90_ms_per_frame" : 18.974,
+          "batch" : 1,
+          "bytes" : 852743287,
+          "compute_plan_ops_by_device" : {
+            "NeuralEngine" : 3049
+          },
+          "face_mae_255" : 0.482073575258255,
+          "face_max_abs_255" : 15.357020378112793,
+          "fps_single_stream_unet_only" : 53,
+          "kind" : "unet",
+          "latent_mae" : 0.012812141329050064,
+          "latent_max_abs" : 0.3892197608947754,
+          "mb" : 813,
+          "name" : "unet_ane_int8w_b1",
+          "rss_mb_after" : 1638,
+          "variant" : "ane_int8w",
+          "weight_bytes_per_frame_mb" : 813.2
+        },
+        {
+          "ane_load_s" : 16.2,
+          "ane_ms_per_call" : 100.56,
+          "ane_ms_per_frame" : 25.141,
+          "ane_p90_ms_per_frame" : 25.247,
+          "batch" : 4,
+          "bytes" : 1703013161,
+          "compute_plan_ops_by_device" : {
+            "NeuralEngine" : 3049
+          },
+          "face_mae_255" : 0.4336286187171936,
+          "face_max_abs_255" : 12.75041389465332,
+          "fps_single_stream_unet_only" : 39.8,
+          "kind" : "unet",
+          "latent_mae" : 0.012313341721892357,
+          "latent_max_abs" : 0.3589463233947754,
+          "mb" : 1624,
+          "name" : "unet_ane_fp16_b4",
+          "rss_mb_after" : 1592,
+          "variant" : "ane_fp16",
+          "weight_bytes_per_frame_mb" : 406
+        },
+        {
+          "ane_load_s" : 13.4,
+          "ane_ms_per_call" : 80.29,
+          "ane_ms_per_frame" : 20.074,
+          "ane_p90_ms_per_frame" : 20.142,
+          "batch" : 4,
+          "bytes" : 852743287,
+          "compute_plan_ops_by_device" : {
+            "NeuralEngine" : 3049
+          },
+          "face_mae_255" : 0.482073575258255,
+          "face_max_abs_255" : 15.357020378112793,
+          "fps_single_stream_unet_only" : 49.8,
+          "kind" : "unet",
+          "latent_mae" : 0.012812141329050064,
+          "latent_max_abs" : 0.3892197608947754,
+          "mb" : 813,
+          "name" : "unet_ane_int8w_b4",
+          "rss_mb_after" : 1596,
+          "variant" : "ane_int8w",
+          "weight_bytes_per_frame_mb" : 203.3
+        }
+      ],
+      "units" : "CPU_AND_NE"
+    },
+    "gate" : {
+      "pytorch_fp32" : {
+        "mae_max" : 0.00048121900181286037,
+        "mae_mean" : 0.0003826273441518424,
+        "max_abs_max" : 0.04686196148395538,
+        "max_abs_mean" : 0.014692156575620174,
+        "pass" : true
+      },
+      "unet_fp16_b1" : {
+        "mae_max" : 0.01835004612803459,
+        "mae_mean" : 0.01278440683381632,
+        "max_abs_max" : 1.0009765625,
+        "max_abs_mean" : 0.5215401649475098,
+        "pass" : false
+      }
+    },
+    "host" : "arm64",
+    "note" : "M5 Pro Neural Engine, coremltools 9 Python bench",
+    "server_engines" : {
+      "trt_fp16" : {
+        "mae_max" : 0.0025,
+        "mae_mean" : 0.0018,
+        "max_abs_max" : 0.414
+      },
+      "trt_int8_srcg50_shipping" : {
+        "mae_max" : 0.0044,
+        "mae_mean" : 0.0032,
+        "max_abs_max" : 0.777
+      }
+    }
+  },
+  "options" : {
+    "chain_frames" : 0,
+    "compute_plan" : false,
+    "gpu_check" : false,
+    "gpu_check_frames" : 64,
+    "include_batch4" : false,
+    "phase_units" : "ALL",
+    "reload" : false,
+    "settle_seconds" : 5,
+    "sustained_seconds" : 0,
+    "unet_frames" : 20,
+    "unet_units" : [
+      "CPU_AND_NE"
+    ],
+    "whisper" : false
+  },
+  "repo_commit" : "79e3535",
+  "started" : "2026-11-04T09:59:09Z",
+  "unet_runs" : [
+    {
+      "accuracy" : {
+        "files" : 16,
+        "frames" : 128,
+        "mae_max" : 0.018747285119388835,
+        "mae_mean" : 0.013157262742538478,
+        "max_abs_max" : 1.03271484375,
+        "max_abs_mean" : 0.5444207191467285,
+        "p95_abs_max" : 0.0625,
+        "pass" : false,
+        "per_file" : [
+          {
+            "avatar" : "chin_h3_japanese_new",
+            "frames" : 8,
+            "mae" : 0.01446614107771893,
+            "max_abs" : 0.8421096801757812,
+            "name" : "unet_io_000001_bs8_pid3537045.pt",
+            "p95_abs" : 0.04248046875,
+            "pass" : false,
+            "rmse" : 0.028857844848472
+          },
+          {
+            "avatar" : "chin_h3_latina_new",
+            "frames" : 8,
+            "mae" : 0.011979818054896896,
+            "max_abs" : 0.4757080078125,
+            "name" : "unet_io_000044_bs8_pid3537045.pt",
+            "p95_abs" : 0.03488006591796855,
+            "pass" : false,
+            "rmse" : 0.018875753416769163
+          },
+          {
+            "avatar" : "chin_h3_latina_new",
+            "frames" : 8,
+            "mae" : 0.011463420543805114,
+            "max_abs" : 0.914794921875,
+            "name" : "unet_io_000054_bs8_pid3537045.pt",
+            "p95_abs" : 0.03125,
+            "pass" : false,
+            "rmse" : 0.01856582011478678
+          },
+          {
+            "avatar" : "japanese_realtime_talking_7d94520b7f",
+            "frames" : 8,
+            "mae" : 0.01678526640716882,
+            "max_abs" : 1.03271484375,
+            "name" : "unet_io_000072_bs8_pid3537045.pt",
+            "p95_abs" : 0.054278564453124734,
+            "pass" : false,
+            "rmse" : 0.035373198731421716
+          },
+          {
+            "avatar" : "japanese_realtime_talking_7d94520b7f_fh1",
+            "frames" : 8,
+            "mae" : 0.016775093121395912,
+            "max_abs" : 0.5166015625,
+            "name" : "unet_io_000125_bs8_pid3537045.pt",
+            "p95_abs" : 0.0556640625,
+            "pass" : false,
+            "rmse" : 0.030737880915765903
+          },
+          {
+            "avatar" : "latina_guided_20260925_talking_84c5bc80b8",
+            "frames" : 8,
+            "mae" : 0.010854968657440622,
+            "max_abs" : 0.3203125,
+            "name" : "unet_io_000133_bs8_pid3537045.pt",
+            "p95_abs" : 0.029296875,
+            "pass" : false,
+            "rmse" : 0.015597050766129293
+          },
+          {
+            "avatar" : "chinese_bob_pink_bedroom_talking_3373c10448",
+            "frames" : 8,
+            "mae" : 0.012838448463298846,
+            "max_abs" : 0.491546630859375,
+            "name" : "unet_io_000171_bs8_pid3537045.pt",
+            "p95_abs" : 0.037109375,
+            "pass" : false,
+            "rmse" : 0.020174555251359434
+          },
+          {
+            "avatar" : "indian_realtime_talking_20f9845543",
+            "frames" : 8,
+            "mae" : 0.010973234833727474,
+            "max_abs" : 0.173828125,
+            "name" : "unet_io_000211_bs8_pid3537045.pt",
+            "p95_abs" : 0.03125,
+            "pass" : false,
+            "rmse" : 0.015476433966050217
+          },
+          {
+            "avatar" : "div_black_woman",
+            "frames" : 8,
+            "mae" : 0.011872932511323597,
+            "max_abs" : 0.66943359375,
+            "name" : "unet_io_000256_bs8_pid3537045.pt",
+            "p95_abs" : 0.033203125,
+            "pass" : false,
+            "rmse" : 0.019469762372324794
+          },
+          {
+            "avatar" : "div_east_asian_man_goatee",
+            "frames" : 8,
+            "mae" : 0.013599605168565176,
+            "max_abs" : 0.353515625,
+            "name" : "unet_io_000260_bs8_pid3537045.pt",
+            "p95_abs" : 0.04047470092773414,
+            "pass" : false,
+            "rmse" : 0.020678646840532534
+          },
+          {
+            "avatar" : "div_middle_eastern_man_full_beard",
+            "frames" : 8,
+            "mae" : 0.012962122591488878,
+            "max_abs" : 0.56640625,
+            "name" : "unet_io_000313_bs8_pid3537045.pt",
+            "p95_abs" : 0.03934631347656237,
+            "pass" : false,
+            "rmse" : 0.021936934906752036
+          },
+          {
+            "avatar" : "div_white_man_clean_shaven",
+            "frames" : 8,
+            "mae" : 0.018747285119388835,
+            "max_abs" : 0.933349609375,
+            "name" : "unet_io_000334_bs8_pid3537045.pt",
+            "p95_abs" : 0.0625,
+            "pass" : false,
+            "rmse" : 0.040368105253619106
+          },
+          {
+            "avatar" : "div_south_asian_woman",
+            "frames" : 8,
+            "mae" : 0.011321955900712055,
+            "max_abs" : 0.2822265625,
+            "name" : "unet_io_000367_bs8_pid3537045.pt",
+            "p95_abs" : 0.03125,
+            "pass" : false,
+            "rmse" : 0.01627859023855707
+          },
+          {
+            "avatar" : "div_south_asian_woman",
+            "frames" : 8,
+            "mae" : 0.011659253339530551,
+            "max_abs" : 0.39306640625,
+            "name" : "unet_io_000370_bs8_pid3537045.pt",
+            "p95_abs" : 0.0322265625,
+            "pass" : false,
+            "rmse" : 0.01695393734733756
+          },
+          {
+            "avatar" : "div_black_man_short_beard",
+            "frames" : 8,
+            "mae" : 0.011743884133466054,
+            "max_abs" : 0.3818359375,
+            "name" : "unet_io_000410_bs8_pid3537045.pt",
+            "p95_abs" : 0.0341796875,
+            "pass" : false,
+            "rmse" : 0.01747537571751515
+          },
+          {
+            "avatar" : "codex_smoke",
+            "frames" : 8,
+            "mae" : 0.012472773956687888,
+            "max_abs" : 0.36328125,
+            "name" : "unet_io_000423_bs8_pid3537045.pt",
+            "p95_abs" : 0.03525695800781237,
+            "pass" : false,
+            "rmse" : 0.018714112555327282
+          }
+        ]
+      },
+      "batch" : 1,
+      "compute_units" : "CPU_AND_NE",
+      "first_predict_ms" : 65.38,
+      "frames_timed" : 20,
+      "layout" : "apple-ane",
+      "load_first_s" : 26.3264,
+      "model" : "unet_anev2fc0_int8w_b1_chunked",
+      "stage_files" : [
+        "unet_anev2fc0_int8w_b1_chunk1.mlmodelc",
+        "unet_anev2fc0_int8w_b1_chunk2.mlmodelc"
+      ],
+      "stage_load_s" : [
+        11.3573,
+        14.9691
+      ],
+      "stages" : 2,
+      "thermal_after" : "nominal",
+      "timing_per_call" : {
+        "count" : 20,
+        "max_ms" : 57.22400010563433,
+        "mean_ms" : 54.3282333179377,
+        "min_ms" : 52.93445801362395,
+        "over_40ms" : 20,
+        "over_50ms" : 20,
+        "p50_ms" : 54.297770955599844,
+        "p90_ms" : 54.85914999153465,
+        "p99_ms" : 56.80828008102253
+      },
+      "timing_per_frame" : {
+        "count" : 20,
+        "max_ms" : 57.22400010563433,
+        "mean_ms" : 54.3282333179377,
+        "min_ms" : 52.93445801362395,
+        "over_40ms" : 20,
+        "over_50ms" : 20,
+        "p50_ms" : 54.297770955599844,
+        "p90_ms" : 54.85914999153465,
+        "p99_ms" : 56.80828008102253
+      },
+      "variant" : "anev2fc0_int8w"
+    },
+    {
+      "accuracy" : {
+        "files" : 16,
+        "frames" : 128,
+        "mae_max" : 0.11385163218983507,
+        "mae_mean" : 0.09645218623870733,
+        "max_abs_max" : 5.021484375,
+        "max_abs_mean" : 2.8112988471984863,
+        "p95_abs_max" : 0.4811851501464843,
+        "pass" : false,
+        "per_file" : [
+          {
+            "avatar" : "chin_h3_japanese_new",
+            "frames" : 8,
+            "mae" : 0.10524307922605658,
+            "max_abs" : 5.021484375,
+            "name" : "unet_io_000001_bs8_pid3537045.pt",
+            "p95_abs" : 0.46109619140624947,
+            "pass" : false,
+            "rmse" : 0.22914223516384488
+          },
+          {
+            "avatar" : "chin_h3_latina_new",
+            "frames" : 8,
+            "mae" : 0.08850428026926238,
+            "max_abs" : 2.06884765625,
+            "name" : "unet_io_000044_bs8_pid3537045.pt",
+            "p95_abs" : 0.38423461914062473,
+            "pass" : false,
+            "rmse" : 0.1796760375159813
+          },
+          {
+            "avatar" : "chin_h3_latina_new",
+            "frames" : 8,
+            "mae" : 0.0932491368985211,
+            "max_abs" : 1.9569091796875,
+            "name" : "unet_io_000054_bs8_pid3537045.pt",
+            "p95_abs" : 0.4150390625,
+            "pass" : false,
+            "rmse" : 0.18730775003883082
+          },
+          {
+            "avatar" : "japanese_realtime_talking_7d94520b7f",
+            "frames" : 8,
+            "mae" : 0.09973123750387458,
+            "max_abs" : 3.75,
+            "name" : "unet_io_000072_bs8_pid3537045.pt",
+            "p95_abs" : 0.40523071289062473,
+            "pass" : false,
+            "rmse" : 0.207908501982023
+          },
+          {
+            "avatar" : "japanese_realtime_talking_7d94520b7f_fh1",
+            "frames" : 8,
+            "mae" : 0.10333930123670143,
+            "max_abs" : 2.61669921875,
+            "name" : "unet_io_000125_bs8_pid3537045.pt",
+            "p95_abs" : 0.447265625,
+            "pass" : false,
+            "rmse" : 0.218629343593956
+          },
+          {
+            "avatar" : "latina_guided_20260925_talking_84c5bc80b8",
+            "frames" : 8,
+            "mae" : 0.0813635201229772,
+            "max_abs" : 2.027587890625,
+            "name" : "unet_io_000133_bs8_pid3537045.pt",
+            "p95_abs" : 0.33023681640624947,
+            "pass" : false,
+            "rmse" : 0.15643276544315377
+          },
+          {
+            "avatar" : "chinese_bob_pink_bedroom_talking_3373c10448",
+            "frames" : 8,
+            "mae" : 0.10423208230895398,
+            "max_abs" : 2.6464309692382812,
+            "name" : "unet_io_000171_bs8_pid3537045.pt",
+            "p95_abs" : 0.45947265625,
+            "pass" : false,
+            "rmse" : 0.21683627644009767
+          },
+          {
+            "avatar" : "indian_realtime_talking_20f9845543",
+            "frames" : 8,
+            "mae" : 0.1073248107895779,
+            "max_abs" : 2.81640625,
+            "name" : "unet_io_000211_bs8_pid3537045.pt",
+            "p95_abs" : 0.4429183959960933,
+            "pass" : false,
+            "rmse" : 0.22117242877667986
+          },
+          {
+            "avatar" : "div_black_woman",
+            "frames" : 8,
+            "mae" : 0.08327023626043228,
+            "max_abs" : 2.2919921875,
+            "name" : "unet_io_000256_bs8_pid3537045.pt",
+            "p95_abs" : 0.337890625,
+            "pass" : false,
+            "rmse" : 0.16444804555424836
+          },
+          {
+            "avatar" : "div_east_asian_man_goatee",
+            "frames" : 8,
+            "mae" : 0.08969933379557915,
+            "max_abs" : 2.7783203125,
+            "name" : "unet_io_000260_bs8_pid3537045.pt",
+            "p95_abs" : 0.36629028320312473,
+            "pass" : false,
+            "rmse" : 0.17934398847800623
+          },
+          {
+            "avatar" : "div_middle_eastern_man_full_beard",
+            "frames" : 8,
+            "mae" : 0.11385163218983507,
+            "max_abs" : 2.11669921875,
+            "name" : "unet_io_000313_bs8_pid3537045.pt",
+            "p95_abs" : 0.4811851501464843,
+            "pass" : false,
+            "rmse" : 0.21609063074956672
+          },
+          {
+            "avatar" : "div_white_man_clean_shaven",
+            "frames" : 8,
+            "mae" : 0.08284232321057061,
+            "max_abs" : 4.2216796875,
+            "name" : "unet_io_000334_bs8_pid3537045.pt",
+            "p95_abs" : 0.31982421875,
+            "pass" : false,
+            "rmse" : 0.17704723713960185
+          },
+          {
+            "avatar" : "div_south_asian_woman",
+            "frames" : 8,
+            "mae" : 0.08058979026827728,
+            "max_abs" : 2.64306640625,
+            "name" : "unet_io_000367_bs8_pid3537045.pt",
+            "p95_abs" : 0.3373382568359371,
+            "pass" : false,
+            "rmse" : 0.16635593138046265
+          },
+          {
+            "avatar" : "div_south_asian_woman",
+            "frames" : 8,
+            "mae" : 0.0881151051762572,
+            "max_abs" : 2.41943359375,
+            "name" : "unet_io_000370_bs8_pid3537045.pt",
+            "p95_abs" : 0.3720703125,
+            "pass" : false,
+            "rmse" : 0.18261974474001677
+          },
+          {
+            "avatar" : "div_black_man_short_beard",
+            "frames" : 8,
+            "mae" : 0.11194523888116237,
+            "max_abs" : 3.515625,
+            "name" : "unet_io_000410_bs8_pid3537045.pt",
+            "p95_abs" : 0.4573883056640613,
+            "pass" : false,
+            "rmse" : 0.22692623691605526
+          },
+          {
+            "avatar" : "codex_smoke",
+            "frames" : 8,
+            "mae" : 0.1099338716812781,
+            "max_abs" : 2.089599609375,
+            "name" : "unet_io_000423_bs8_pid3537045.pt",
+            "p95_abs" : 0.40901489257812473,
+            "pass" : false,
+            "rmse" : 0.19977021979441503
+          }
+        ]
+      },
+      "batch" : 1,
+      "compute_units" : "CPU_AND_NE",
+      "first_predict_ms" : 33.91,
+      "frames_timed" : 20,
+      "layout" : "diffusers",
+      "load_first_s" : 10.9178,
+      "model" : "unet_bk_tiny_r2_selected_int8w_b1",
+      "stage_files" : [
+        "unet_bk_tiny_r2_selected_int8w_b1.mlmodelc"
+      ],
+      "stage_load_s" : [
+        10.9178
+      ],
+      "stages" : 1,
+      "thermal_after" : "nominal",
+      "timing_per_call" : {
+        "count" : 20,
+        "max_ms" : 34.2960839625448,
+        "mean_ms" : 33.307418576441705,
+        "min_ms" : 32.48325013555586,
+        "over_40ms" : 0,
+        "over_50ms" : 0,
+        "p50_ms" : 33.386061899363995,
+        "p90_ms" : 33.911425434052944,
+        "p99_ms" : 34.24524302594364
+      },
+      "timing_per_frame" : {
+        "count" : 20,
+        "max_ms" : 34.2960839625448,
+        "mean_ms" : 33.307418576441705,
+        "min_ms" : 32.48325013555586,
+        "over_40ms" : 0,
+        "over_50ms" : 0,
+        "p50_ms" : 33.386061899363995,
+        "p90_ms" : 33.911425434052944,
+        "p99_ms" : 34.24524302594364
+      },
+      "variant" : "int8w"
+    }
+  ]
+}
+BENCH_JSON_END
+The app terminated with the exit code 0.

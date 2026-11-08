@@ -1,0 +1,609 @@
+60 clips, 15000 frames per arm, on NVIDIA GeForce RTX 3090
+loading teacher UNet unet.pth...
+/workspace/new_identity_review/MuseTalk/musetalk/models/unet.py:44: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  weights = torch.load(model_path) if torch.cuda.is_available() else torch.load(model_path, map_location=self.device)
+  A ni30_01__ai-assistant: 15.8 ms/frame on cuda
+  A ni30_01__eng: 15.7 ms/frame on cuda
+  A ni30_02__ai-assistant: 15.7 ms/frame on cuda
+  A ni30_02__eng: 15.8 ms/frame on cuda
+  A ni30_03__ai-assistant: 15.8 ms/frame on cuda
+  A ni30_03__eng: 15.9 ms/frame on cuda
+  A ni30_04__ai-assistant: 16.0 ms/frame on cuda
+  A ni30_04__eng: 15.8 ms/frame on cuda
+  A ni30_05__ai-assistant: 15.8 ms/frame on cuda
+  A ni30_05__eng: 15.8 ms/frame on cuda
+  A ni30_06__ai-assistant: 15.8 ms/frame on cuda
+  A ni30_06__eng: 15.8 ms/frame on cuda
+  A ni30_07__ai-assistant: 15.8 ms/frame on cuda
+  A ni30_07__eng: 15.8 ms/frame on cuda
+  A ni30_08__ai-assistant: 15.7 ms/frame on cuda
+  A ni30_08__eng: 15.8 ms/frame on cuda
+  A ni30_09__ai-assistant: 15.8 ms/frame on cuda
+  A ni30_09__eng: 15.9 ms/frame on cuda
+  A ni30_10__ai-assistant: 15.9 ms/frame on cuda
+  A ni30_10__eng: 15.9 ms/frame on cuda
+  A ni30_11__ai-assistant: 15.9 ms/frame on cuda
+  A ni30_11__eng: 15.9 ms/frame on cuda
+  A ni30_12__ai-assistant: 16.0 ms/frame on cuda
+  A ni30_12__eng: 16.0 ms/frame on cuda
+  A ni30_13__ai-assistant: 16.0 ms/frame on cuda
+  A ni30_13__eng: 15.9 ms/frame on cuda
+  A ni30_14__ai-assistant: 15.9 ms/frame on cuda
+  A ni30_14__eng: 15.9 ms/frame on cuda
+  A ni30_15__ai-assistant: 15.9 ms/frame on cuda
+  A ni30_15__eng: 15.9 ms/frame on cuda
+  A ni30_16__ai-assistant: 15.9 ms/frame on cuda
+  A ni30_16__eng: 16.0 ms/frame on cuda
+  A ni30_17__ai-assistant: 16.0 ms/frame on cuda
+  A ni30_17__eng: 16.0 ms/frame on cuda
+  A ni30_18__ai-assistant: 16.0 ms/frame on cuda
+  A ni30_18__eng: 16.0 ms/frame on cuda
+  A ni30_19__ai-assistant: 16.0 ms/frame on cuda
+  A ni30_19__eng: 15.7 ms/frame on cuda
+  A ni30_20__ai-assistant: 15.6 ms/frame on cuda
+  A ni30_20__eng: 15.8 ms/frame on cuda
+  A ni30_21__ai-assistant: 15.9 ms/frame on cuda
+  A ni30_21__eng: 15.9 ms/frame on cuda
+  A ni30_22__ai-assistant: 15.9 ms/frame on cuda
+  A ni30_22__eng: 16.0 ms/frame on cuda
+  A ni30_23__ai-assistant: 16.0 ms/frame on cuda
+  A ni30_23__eng: 16.0 ms/frame on cuda
+  A ni30_24__ai-assistant: 16.0 ms/frame on cuda
+  A ni30_24__eng: 16.0 ms/frame on cuda
+  A ni30_25__ai-assistant: 16.0 ms/frame on cuda
+  A ni30_25__eng: 16.0 ms/frame on cuda
+  A ni30_26__ai-assistant: 16.0 ms/frame on cuda
+  A ni30_26__eng: 16.0 ms/frame on cuda
+  A ni30_27__ai-assistant: 16.0 ms/frame on cuda
+  A ni30_27__eng: 16.0 ms/frame on cuda
+  A ni30_28__ai-assistant: 16.0 ms/frame on cuda
+  A ni30_28__eng: 16.1 ms/frame on cuda
+  A ni30_29__ai-assistant: 16.1 ms/frame on cuda
+  A ni30_29__eng: 16.1 ms/frame on cuda
+  A ni30_30__ai-assistant: 16.1 ms/frame on cuda
+  A ni30_30__eng: 16.1 ms/frame on cuda
+  N ni30_01__ai-assistant: 6.3 ms/frame on cuda
+  N ni30_01__eng: 6.0 ms/frame on cuda
+  N ni30_02__ai-assistant: 6.0 ms/frame on cuda
+  N ni30_02__eng: 6.0 ms/frame on cuda
+  N ni30_03__ai-assistant: 6.0 ms/frame on cuda
+  N ni30_03__eng: 6.0 ms/frame on cuda
+  N ni30_04__ai-assistant: 6.0 ms/frame on cuda
+  N ni30_04__eng: 6.1 ms/frame on cuda
+  N ni30_05__ai-assistant: 6.1 ms/frame on cuda
+  N ni30_05__eng: 6.0 ms/frame on cuda
+  N ni30_06__ai-assistant: 6.8 ms/frame on cuda
+  N ni30_06__eng: 6.9 ms/frame on cuda
+  N ni30_07__ai-assistant: 6.9 ms/frame on cuda
+  N ni30_07__eng: 6.9 ms/frame on cuda
+  N ni30_08__ai-assistant: 6.8 ms/frame on cuda
+  N ni30_08__eng: 6.9 ms/frame on cuda
+  N ni30_09__ai-assistant: 6.8 ms/frame on cuda
+  N ni30_09__eng: 6.9 ms/frame on cuda
+  N ni30_10__ai-assistant: 6.9 ms/frame on cuda
+  N ni30_10__eng: 6.8 ms/frame on cuda
+  N ni30_11__ai-assistant: 6.8 ms/frame on cuda
+  N ni30_11__eng: 6.8 ms/frame on cuda
+  N ni30_12__ai-assistant: 6.8 ms/frame on cuda
+  N ni30_12__eng: 6.8 ms/frame on cuda
+  N ni30_13__ai-assistant: 7.0 ms/frame on cuda
+  N ni30_13__eng: 6.9 ms/frame on cuda
+  N ni30_14__ai-assistant: 6.8 ms/frame on cuda
+  N ni30_14__eng: 6.9 ms/frame on cuda
+  N ni30_15__ai-assistant: 6.8 ms/frame on cuda
+  N ni30_15__eng: 6.8 ms/frame on cuda
+  N ni30_16__ai-assistant: 6.9 ms/frame on cuda
+  N ni30_16__eng: 6.8 ms/frame on cuda
+  N ni30_17__ai-assistant: 6.8 ms/frame on cuda
+  N ni30_17__eng: 6.8 ms/frame on cuda
+  N ni30_18__ai-assistant: 6.8 ms/frame on cuda
+  N ni30_18__eng: 6.9 ms/frame on cuda
+  N ni30_19__ai-assistant: 6.9 ms/frame on cuda
+  N ni30_19__eng: 6.9 ms/frame on cuda
+  N ni30_20__ai-assistant: 6.8 ms/frame on cuda
+  N ni30_20__eng: 6.8 ms/frame on cuda
+  N ni30_21__ai-assistant: 6.8 ms/frame on cuda
+  N ni30_21__eng: 6.9 ms/frame on cuda
+  N ni30_22__ai-assistant: 6.8 ms/frame on cuda
+  N ni30_22__eng: 6.8 ms/frame on cuda
+  N ni30_23__ai-assistant: 6.8 ms/frame on cuda
+  N ni30_23__eng: 6.8 ms/frame on cuda
+  N ni30_24__ai-assistant: 6.8 ms/frame on cuda
+  N ni30_24__eng: 7.0 ms/frame on cuda
+  N ni30_25__ai-assistant: 6.0 ms/frame on cuda
+  N ni30_25__eng: 5.9 ms/frame on cuda
+  N ni30_26__ai-assistant: 5.9 ms/frame on cuda
+  N ni30_26__eng: 5.9 ms/frame on cuda
+  N ni30_27__ai-assistant: 5.8 ms/frame on cuda
+  N ni30_27__eng: 5.9 ms/frame on cuda
+  N ni30_28__ai-assistant: 5.9 ms/frame on cuda
+  N ni30_28__eng: 5.8 ms/frame on cuda
+  N ni30_29__ai-assistant: 5.8 ms/frame on cuda
+  N ni30_29__eng: 5.8 ms/frame on cuda
+  N ni30_30__ai-assistant: 5.9 ms/frame on cuda
+  N ni30_30__eng: 5.8 ms/frame on cuda
+loading student UNet bk_tiny_best.pt...
+  S ni30_01__ai-assistant: 8.1 ms/frame on cuda
+  S ni30_01__eng: 8.1 ms/frame on cuda
+  S ni30_02__ai-assistant: 8.1 ms/frame on cuda
+  S ni30_02__eng: 8.1 ms/frame on cuda
+  S ni30_03__ai-assistant: 8.1 ms/frame on cuda
+  S ni30_03__eng: 8.1 ms/frame on cuda
+  S ni30_04__ai-assistant: 8.0 ms/frame on cuda
+  S ni30_04__eng: 8.1 ms/frame on cuda
+  S ni30_05__ai-assistant: 8.1 ms/frame on cuda
+  S ni30_05__eng: 8.1 ms/frame on cuda
+  S ni30_06__ai-assistant: 8.1 ms/frame on cuda
+  S ni30_06__eng: 8.1 ms/frame on cuda
+  S ni30_07__ai-assistant: 8.1 ms/frame on cuda
+  S ni30_07__eng: 8.1 ms/frame on cuda
+  S ni30_08__ai-assistant: 8.1 ms/frame on cuda
+  S ni30_08__eng: 8.1 ms/frame on cuda
+  S ni30_09__ai-assistant: 8.1 ms/frame on cuda
+  S ni30_09__eng: 8.1 ms/frame on cuda
+  S ni30_10__ai-assistant: 8.1 ms/frame on cuda
+  S ni30_10__eng: 8.1 ms/frame on cuda
+  S ni30_11__ai-assistant: 8.1 ms/frame on cuda
+  S ni30_11__eng: 8.1 ms/frame on cuda
+  S ni30_12__ai-assistant: 8.1 ms/frame on cuda
+  S ni30_12__eng: 8.1 ms/frame on cuda
+  S ni30_13__ai-assistant: 8.1 ms/frame on cuda
+  S ni30_13__eng: 8.1 ms/frame on cuda
+  S ni30_14__ai-assistant: 8.1 ms/frame on cuda
+  S ni30_14__eng: 8.1 ms/frame on cuda
+  S ni30_15__ai-assistant: 8.1 ms/frame on cuda
+  S ni30_15__eng: 8.0 ms/frame on cuda
+  S ni30_16__ai-assistant: 8.0 ms/frame on cuda
+  S ni30_16__eng: 8.0 ms/frame on cuda
+  S ni30_17__ai-assistant: 8.0 ms/frame on cuda
+  S ni30_17__eng: 8.0 ms/frame on cuda
+  S ni30_18__ai-assistant: 8.0 ms/frame on cuda
+  S ni30_18__eng: 8.0 ms/frame on cuda
+  S ni30_19__ai-assistant: 8.0 ms/frame on cuda
+  S ni30_19__eng: 8.0 ms/frame on cuda
+  S ni30_20__ai-assistant: 8.0 ms/frame on cuda
+  S ni30_20__eng: 8.0 ms/frame on cuda
+  S ni30_21__ai-assistant: 8.0 ms/frame on cuda
+  S ni30_21__eng: 8.1 ms/frame on cuda
+  S ni30_22__ai-assistant: 8.0 ms/frame on cuda
+  S ni30_22__eng: 8.1 ms/frame on cuda
+  S ni30_23__ai-assistant: 8.1 ms/frame on cuda
+  S ni30_23__eng: 8.0 ms/frame on cuda
+  S ni30_24__ai-assistant: 8.1 ms/frame on cuda
+  S ni30_24__eng: 8.1 ms/frame on cuda
+  S ni30_25__ai-assistant: 8.1 ms/frame on cuda
+  S ni30_25__eng: 8.1 ms/frame on cuda
+  S ni30_26__ai-assistant: 8.1 ms/frame on cuda
+  S ni30_26__eng: 8.1 ms/frame on cuda
+  S ni30_27__ai-assistant: 8.1 ms/frame on cuda
+  S ni30_27__eng: 8.1 ms/frame on cuda
+  S ni30_28__ai-assistant: 8.1 ms/frame on cuda
+  S ni30_28__eng: 8.1 ms/frame on cuda
+  S ni30_29__ai-assistant: 8.1 ms/frame on cuda
+  S ni30_29__eng: 8.1 ms/frame on cuda
+  S ni30_30__ai-assistant: 8.1 ms/frame on cuda
+  S ni30_30__eng: 8.1 ms/frame on cuda
+  S16 ni30_01__ai-assistant: 3.3 ms/frame on cuda
+  S16 ni30_01__eng: 3.3 ms/frame on cuda
+  S16 ni30_02__ai-assistant: 3.3 ms/frame on cuda
+  S16 ni30_02__eng: 3.3 ms/frame on cuda
+  S16 ni30_03__ai-assistant: 3.3 ms/frame on cuda
+  S16 ni30_03__eng: 3.3 ms/frame on cuda
+  S16 ni30_04__ai-assistant: 3.3 ms/frame on cuda
+  S16 ni30_04__eng: 3.3 ms/frame on cuda
+  S16 ni30_05__ai-assistant: 3.5 ms/frame on cuda
+  S16 ni30_05__eng: 3.3 ms/frame on cuda
+  S16 ni30_06__ai-assistant: 3.4 ms/frame on cuda
+  S16 ni30_06__eng: 3.4 ms/frame on cuda
+  S16 ni30_07__ai-assistant: 3.3 ms/frame on cuda
+  S16 ni30_07__eng: 3.3 ms/frame on cuda
+  S16 ni30_08__ai-assistant: 3.4 ms/frame on cuda
+  S16 ni30_08__eng: 3.4 ms/frame on cuda
+  S16 ni30_09__ai-assistant: 3.4 ms/frame on cuda
+  S16 ni30_09__eng: 3.4 ms/frame on cuda
+  S16 ni30_10__ai-assistant: 3.4 ms/frame on cuda
+  S16 ni30_10__eng: 3.4 ms/frame on cuda
+  S16 ni30_11__ai-assistant: 3.4 ms/frame on cuda
+  S16 ni30_11__eng: 3.4 ms/frame on cuda
+  S16 ni30_12__ai-assistant: 3.4 ms/frame on cuda
+  S16 ni30_12__eng: 3.3 ms/frame on cuda
+  S16 ni30_13__ai-assistant: 3.3 ms/frame on cuda
+  S16 ni30_13__eng: 3.3 ms/frame on cuda
+  S16 ni30_14__ai-assistant: 3.3 ms/frame on cuda
+  S16 ni30_14__eng: 3.3 ms/frame on cuda
+  S16 ni30_15__ai-assistant: 3.3 ms/frame on cuda
+  S16 ni30_15__eng: 3.3 ms/frame on cuda
+  S16 ni30_16__ai-assistant: 3.3 ms/frame on cuda
+  S16 ni30_16__eng: 3.3 ms/frame on cuda
+  S16 ni30_17__ai-assistant: 3.4 ms/frame on cuda
+  S16 ni30_17__eng: 3.3 ms/frame on cuda
+  S16 ni30_18__ai-assistant: 3.3 ms/frame on cuda
+  S16 ni30_18__eng: 3.3 ms/frame on cuda
+  S16 ni30_19__ai-assistant: 3.3 ms/frame on cuda
+  S16 ni30_19__eng: 3.3 ms/frame on cuda
+  S16 ni30_20__ai-assistant: 3.3 ms/frame on cuda
+  S16 ni30_20__eng: 3.3 ms/frame on cuda
+  S16 ni30_21__ai-assistant: 3.4 ms/frame on cuda
+  S16 ni30_21__eng: 3.4 ms/frame on cuda
+  S16 ni30_22__ai-assistant: 3.3 ms/frame on cuda
+  S16 ni30_22__eng: 3.3 ms/frame on cuda
+  S16 ni30_23__ai-assistant: 3.3 ms/frame on cuda
+  S16 ni30_23__eng: 3.3 ms/frame on cuda
+  S16 ni30_24__ai-assistant: 3.3 ms/frame on cuda
+  S16 ni30_24__eng: 3.3 ms/frame on cuda
+  S16 ni30_25__ai-assistant: 3.3 ms/frame on cuda
+  S16 ni30_25__eng: 3.3 ms/frame on cuda
+  S16 ni30_26__ai-assistant: 3.3 ms/frame on cuda
+  S16 ni30_26__eng: 3.3 ms/frame on cuda
+  S16 ni30_27__ai-assistant: 3.3 ms/frame on cuda
+  S16 ni30_27__eng: 3.3 ms/frame on cuda
+  S16 ni30_28__ai-assistant: 3.3 ms/frame on cuda
+  S16 ni30_28__eng: 3.3 ms/frame on cuda
+  S16 ni30_29__ai-assistant: 3.3 ms/frame on cuda
+  S16 ni30_29__eng: 3.3 ms/frame on cuda
+  S16 ni30_30__ai-assistant: 3.3 ms/frame on cuda
+  S16 ni30_30__eng: 3.3 ms/frame on cuda
+
+[ni30_01__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.0 dB, flicker ratio mouth 1.000, error flicker 0.040, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.04 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1495, mouth PSNR 22.7 dB, flicker ratio mouth 0.868, error flicker 4.339, sharpness 0.754, lip corr 0.9080 lag 0 |d| 1.89 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1495, mouth PSNR 22.7 dB, flicker ratio mouth 0.868, error flicker 4.338, sharpness 0.754, lip corr 0.9075 lag 0 |d| 1.89 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_01__ai-assistant in 73.8 s
+
+[ni30_01__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.1 dB, flicker ratio mouth 1.000, error flicker 0.040, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.03 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1417, mouth PSNR 23.5 dB, flicker ratio mouth 0.832, error flicker 3.473, sharpness 0.800, lip corr 0.9210 lag 0 |d| 2.00 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1416, mouth PSNR 23.5 dB, flicker ratio mouth 0.832, error flicker 3.473, sharpness 0.800, lip corr 0.9213 lag 0 |d| 2.00 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_01__eng in 63.2 s
+
+[ni30_02__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.7 dB, flicker ratio mouth 1.000, error flicker 0.034, sharpness 1.000, lip corr 0.9999 lag 0 |d| 0.03 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.0891, mouth PSNR 30.9 dB, flicker ratio mouth 0.857, error flicker 2.850, sharpness 0.976, lip corr 0.8615 lag 0 |d| 1.60 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.0891, mouth PSNR 30.9 dB, flicker ratio mouth 0.857, error flicker 2.850, sharpness 0.975, lip corr 0.8623 lag 0 |d| 1.60 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_02__ai-assistant in 54.9 s
+
+[ni30_02__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.7 dB, flicker ratio mouth 1.000, error flicker 0.035, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.02 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.0854, mouth PSNR 31.4 dB, flicker ratio mouth 0.818, error flicker 2.344, sharpness 0.905, lip corr 0.9130 lag 0 |d| 1.24 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.0854, mouth PSNR 31.4 dB, flicker ratio mouth 0.818, error flicker 2.343, sharpness 0.905, lip corr 0.9132 lag 0 |d| 1.23 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_02__eng in 53.6 s
+
+[ni30_03__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.3 dB, flicker ratio mouth 1.000, error flicker 0.037, sharpness 1.000, lip corr 0.9999 lag 0 |d| 0.03 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1184, mouth PSNR 26.0 dB, flicker ratio mouth 1.014, error flicker 3.625, sharpness 0.781, lip corr 0.8022 lag -1 |d| 1.38 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1184, mouth PSNR 26.0 dB, flicker ratio mouth 1.014, error flicker 3.625, sharpness 0.781, lip corr 0.8034 lag -1 |d| 1.38 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_03__ai-assistant in 55.2 s
+
+[ni30_03__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.3 dB, flicker ratio mouth 1.000, error flicker 0.037, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.02 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1112, mouth PSNR 27.0 dB, flicker ratio mouth 0.936, error flicker 3.039, sharpness 0.789, lip corr 0.8671 lag -1 |d| 1.28 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1112, mouth PSNR 26.9 dB, flicker ratio mouth 0.936, error flicker 3.039, sharpness 0.788, lip corr 0.8670 lag -1 |d| 1.28 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_03__eng in 56.5 s
+
+[ni30_04__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.3 dB, flicker ratio mouth 1.000, error flicker 0.037, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.03 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1198, mouth PSNR 28.6 dB, flicker ratio mouth 0.845, error flicker 3.465, sharpness 1.109, lip corr 0.8407 lag 1 |d| 2.13 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1198, mouth PSNR 28.6 dB, flicker ratio mouth 0.845, error flicker 3.465, sharpness 1.109, lip corr 0.8413 lag 1 |d| 2.13 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_04__ai-assistant in 60.6 s
+
+[ni30_04__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.4 dB, flicker ratio mouth 1.000, error flicker 0.037, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.02 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1210, mouth PSNR 28.6 dB, flicker ratio mouth 0.797, error flicker 2.862, sharpness 1.024, lip corr 0.8953 lag 1 |d| 1.93 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1209, mouth PSNR 28.6 dB, flicker ratio mouth 0.797, error flicker 2.862, sharpness 1.023, lip corr 0.8951 lag 1 |d| 1.93 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_04__eng in 55.7 s
+
+[ni30_05__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.5 dB, flicker ratio mouth 1.000, error flicker 0.036, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.03 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1072, mouth PSNR 25.3 dB, flicker ratio mouth 0.895, error flicker 3.301, sharpness 0.629, lip corr 0.8888 lag 0 |d| 1.60 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1072, mouth PSNR 25.3 dB, flicker ratio mouth 0.895, error flicker 3.302, sharpness 0.629, lip corr 0.8889 lag 0 |d| 1.59 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_05__ai-assistant in 55.6 s
+
+[ni30_05__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.6 dB, flicker ratio mouth 1.000, error flicker 0.035, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.03 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.0981, mouth PSNR 26.7 dB, flicker ratio mouth 0.852, error flicker 2.767, sharpness 0.644, lip corr 0.9388 lag 0 |d| 1.39 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.0981, mouth PSNR 26.7 dB, flicker ratio mouth 0.852, error flicker 2.767, sharpness 0.644, lip corr 0.9389 lag 0 |d| 1.39 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_05__eng in 56.2 s
+
+[ni30_06__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 64.7 dB, flicker ratio mouth 1.000, error flicker 0.043, sharpness 1.001, lip corr 1.0000 lag 0 |d| 0.04 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1269, mouth PSNR 24.3 dB, flicker ratio mouth 0.920, error flicker 3.132, sharpness 0.454, lip corr 0.9128 lag 0 |d| 3.50 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1269, mouth PSNR 24.3 dB, flicker ratio mouth 0.920, error flicker 3.132, sharpness 0.454, lip corr 0.9131 lag 0 |d| 3.50 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_06__ai-assistant in 69.8 s
+
+[ni30_06__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 64.5 dB, flicker ratio mouth 1.000, error flicker 0.045, sharpness 1.001, lip corr 0.9999 lag 0 |d| 0.04 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1221, mouth PSNR 24.3 dB, flicker ratio mouth 0.861, error flicker 2.694, sharpness 0.482, lip corr 0.8718 lag 0 |d| 3.83 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1221, mouth PSNR 24.3 dB, flicker ratio mouth 0.861, error flicker 2.694, sharpness 0.482, lip corr 0.8721 lag 0 |d| 3.83 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_06__eng in 60.6 s
+
+[ni30_07__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.0 dB, flicker ratio mouth 1.000, error flicker 0.040, sharpness 1.000, lip corr 0.9998 lag 0 |d| 0.05 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1054, mouth PSNR 31.1 dB, flicker ratio mouth 0.879, error flicker 2.419, sharpness 0.767, lip corr 0.9485 lag 0 |d| 0.87 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1054, mouth PSNR 31.1 dB, flicker ratio mouth 0.879, error flicker 2.419, sharpness 0.767, lip corr 0.9485 lag 0 |d| 0.87 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_07__ai-assistant in 56.1 s
+
+[ni30_07__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.1 dB, flicker ratio mouth 1.000, error flicker 0.040, sharpness 1.000, lip corr 0.9999 lag 0 |d| 0.03 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1036, mouth PSNR 31.1 dB, flicker ratio mouth 0.823, error flicker 2.093, sharpness 0.729, lip corr 0.9628 lag 0 |d| 0.90 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1036, mouth PSNR 31.1 dB, flicker ratio mouth 0.823, error flicker 2.093, sharpness 0.729, lip corr 0.9629 lag 0 |d| 0.90 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_07__eng in 55.3 s
+
+[ni30_08__ai-assistant] 250 frames
+  N: latent mae 0.0005, mouth PSNR 62.2 dB, flicker ratio mouth 1.000, error flicker 0.076, sharpness 1.000, lip corr 0.9995 lag 0 |d| 0.10 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1190, mouth PSNR 27.9 dB, flicker ratio mouth 0.831, error flicker 3.504, sharpness 0.603, lip corr 0.9507 lag 0 |d| 1.13 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1189, mouth PSNR 27.9 dB, flicker ratio mouth 0.831, error flicker 3.504, sharpness 0.603, lip corr 0.9508 lag 0 |d| 1.14 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_08__ai-assistant in 64.0 s
+
+[ni30_08__eng] 250 frames
+  N: latent mae 0.0005, mouth PSNR 61.9 dB, flicker ratio mouth 1.000, error flicker 0.080, sharpness 1.000, lip corr 0.9995 lag 0 |d| 0.11 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1161, mouth PSNR 27.9 dB, flicker ratio mouth 0.775, error flicker 3.044, sharpness 0.571, lip corr 0.9619 lag 0 |d| 1.19 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1161, mouth PSNR 27.9 dB, flicker ratio mouth 0.775, error flicker 3.043, sharpness 0.571, lip corr 0.9615 lag 0 |d| 1.19 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_08__eng in 60.8 s
+
+[ni30_09__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.7 dB, flicker ratio mouth 1.000, error flicker 0.035, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.02 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1299, mouth PSNR 25.8 dB, flicker ratio mouth 0.895, error flicker 3.308, sharpness 0.682, lip corr 0.8860 lag -1 |d| 1.47 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1299, mouth PSNR 25.8 dB, flicker ratio mouth 0.895, error flicker 3.308, sharpness 0.682, lip corr 0.8860 lag -1 |d| 1.47 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_09__ai-assistant in 57.0 s
+
+[ni30_09__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.5 dB, flicker ratio mouth 1.000, error flicker 0.036, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.02 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1204, mouth PSNR 27.1 dB, flicker ratio mouth 0.851, error flicker 2.745, sharpness 0.652, lip corr 0.9303 lag 0 |d| 1.18 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1204, mouth PSNR 27.1 dB, flicker ratio mouth 0.851, error flicker 2.745, sharpness 0.651, lip corr 0.9305 lag 0 |d| 1.18 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_09__eng in 54.6 s
+
+[ni30_10__ai-assistant] 250 frames
+  N: latent mae 0.0005, mouth PSNR 63.2 dB, flicker ratio mouth 1.000, error flicker 0.060, sharpness 1.000, lip corr 0.9993 lag 0 |d| 0.13 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1509, mouth PSNR 25.3 dB, flicker ratio mouth 0.699, error flicker 3.495, sharpness 0.609, lip corr 0.9050 lag 0 |d| 4.09 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1509, mouth PSNR 25.3 dB, flicker ratio mouth 0.699, error flicker 3.495, sharpness 0.609, lip corr 0.9057 lag 0 |d| 4.09 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_10__ai-assistant in 61.3 s
+
+[ni30_10__eng] 250 frames
+  N: latent mae 0.0005, mouth PSNR 63.0 dB, flicker ratio mouth 1.000, error flicker 0.063, sharpness 1.000, lip corr 0.9995 lag 0 |d| 0.13 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1484, mouth PSNR 25.6 dB, flicker ratio mouth 0.665, error flicker 2.982, sharpness 0.627, lip corr 0.8941 lag 0 |d| 4.59 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1484, mouth PSNR 25.6 dB, flicker ratio mouth 0.665, error flicker 2.982, sharpness 0.626, lip corr 0.8948 lag 0 |d| 4.59 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_10__eng in 60.5 s
+
+[ni30_11__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.4 dB, flicker ratio mouth 1.000, error flicker 0.037, sharpness 1.000, lip corr 0.9999 lag 0 |d| 0.04 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1291, mouth PSNR 24.3 dB, flicker ratio mouth 1.236, error flicker 3.104, sharpness 0.981, lip corr 0.7831 lag -1 |d| 2.55 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1291, mouth PSNR 24.3 dB, flicker ratio mouth 1.236, error flicker 3.104, sharpness 0.981, lip corr 0.7824 lag -1 |d| 2.56 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_11__ai-assistant in 60.0 s
+
+[ni30_11__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.2 dB, flicker ratio mouth 1.000, error flicker 0.039, sharpness 1.000, lip corr 0.9999 lag 0 |d| 0.04 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1203, mouth PSNR 25.1 dB, flicker ratio mouth 1.113, error flicker 2.748, sharpness 1.010, lip corr 0.8129 lag -1 |d| 2.35 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1203, mouth PSNR 25.1 dB, flicker ratio mouth 1.114, error flicker 2.748, sharpness 1.010, lip corr 0.8131 lag -1 |d| 2.34 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_11__eng in 66.6 s
+
+[ni30_12__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.2 dB, flicker ratio mouth 1.000, error flicker 0.038, sharpness 1.000, lip corr 0.9998 lag 0 |d| 0.05 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1079, mouth PSNR 28.2 dB, flicker ratio mouth 0.861, error flicker 2.881, sharpness 0.647, lip corr 0.9199 lag 0 |d| 1.23 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1079, mouth PSNR 28.2 dB, flicker ratio mouth 0.861, error flicker 2.882, sharpness 0.647, lip corr 0.9204 lag 0 |d| 1.22 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_12__ai-assistant in 57.7 s
+
+[ni30_12__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.2 dB, flicker ratio mouth 1.000, error flicker 0.038, sharpness 1.000, lip corr 0.9998 lag 0 |d| 0.05 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1045, mouth PSNR 28.8 dB, flicker ratio mouth 0.805, error flicker 2.396, sharpness 0.655, lip corr 0.9452 lag 0 |d| 1.20 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1045, mouth PSNR 28.8 dB, flicker ratio mouth 0.805, error flicker 2.396, sharpness 0.655, lip corr 0.9457 lag 0 |d| 1.20 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_12__eng in 61.4 s
+
+[ni30_13__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.3 dB, flicker ratio mouth 1.000, error flicker 0.037, sharpness 1.000, lip corr 0.9999 lag 0 |d| 0.03 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1001, mouth PSNR 28.3 dB, flicker ratio mouth 0.876, error flicker 2.916, sharpness 0.842, lip corr 0.9512 lag 0 |d| 0.87 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1001, mouth PSNR 28.3 dB, flicker ratio mouth 0.876, error flicker 2.916, sharpness 0.842, lip corr 0.9514 lag 0 |d| 0.87 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_13__ai-assistant in 54.8 s
+
+[ni30_13__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.4 dB, flicker ratio mouth 1.000, error flicker 0.037, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.03 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.0977, mouth PSNR 28.8 dB, flicker ratio mouth 0.814, error flicker 2.475, sharpness 0.778, lip corr 0.9518 lag 0 |d| 1.04 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.0977, mouth PSNR 28.8 dB, flicker ratio mouth 0.814, error flicker 2.475, sharpness 0.778, lip corr 0.9521 lag 0 |d| 1.04 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_13__eng in 53.9 s
+
+[ni30_14__ai-assistant] 250 frames
+  N: latent mae 0.0005, mouth PSNR 63.6 dB, flicker ratio mouth 1.000, error flicker 0.055, sharpness 1.000, lip corr 0.9998 lag 0 |d| 0.05 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1353, mouth PSNR 23.5 dB, flicker ratio mouth 0.884, error flicker 3.710, sharpness 0.785, lip corr 0.9388 lag 0 |d| 1.05 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1353, mouth PSNR 23.5 dB, flicker ratio mouth 0.884, error flicker 3.710, sharpness 0.785, lip corr 0.9389 lag 0 |d| 1.05 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_14__ai-assistant in 61.6 s
+
+[ni30_14__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 63.4 dB, flicker ratio mouth 1.000, error flicker 0.058, sharpness 1.000, lip corr 0.9999 lag 0 |d| 0.04 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1208, mouth PSNR 24.8 dB, flicker ratio mouth 0.850, error flicker 3.104, sharpness 0.781, lip corr 0.9648 lag 0 |d| 0.78 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1208, mouth PSNR 24.8 dB, flicker ratio mouth 0.850, error flicker 3.104, sharpness 0.781, lip corr 0.9651 lag 0 |d| 0.79 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_14__eng in 65.8 s
+
+[ni30_15__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 64.4 dB, flicker ratio mouth 1.000, error flicker 0.045, sharpness 1.000, lip corr 0.9998 lag 0 |d| 0.05 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1039, mouth PSNR 28.5 dB, flicker ratio mouth 0.789, error flicker 2.692, sharpness 0.811, lip corr 0.9372 lag 0 |d| 1.36 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1039, mouth PSNR 28.5 dB, flicker ratio mouth 0.788, error flicker 2.692, sharpness 0.811, lip corr 0.9374 lag 0 |d| 1.35 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_15__ai-assistant in 70.2 s
+
+[ni30_15__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 64.5 dB, flicker ratio mouth 1.000, error flicker 0.044, sharpness 1.000, lip corr 0.9999 lag 0 |d| 0.05 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.0989, mouth PSNR 28.9 dB, flicker ratio mouth 0.765, error flicker 2.208, sharpness 0.827, lip corr 0.9488 lag 0 |d| 1.42 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.0989, mouth PSNR 28.9 dB, flicker ratio mouth 0.765, error flicker 2.208, sharpness 0.827, lip corr 0.9487 lag 0 |d| 1.42 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_15__eng in 81.5 s
+
+[ni30_16__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.0 dB, flicker ratio mouth 1.000, error flicker 0.040, sharpness 1.001, lip corr 1.0000 lag 0 |d| 0.02 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1176, mouth PSNR 24.8 dB, flicker ratio mouth 0.930, error flicker 3.449, sharpness 0.712, lip corr 0.9024 lag 0 |d| 1.56 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1176, mouth PSNR 24.8 dB, flicker ratio mouth 0.930, error flicker 3.449, sharpness 0.712, lip corr 0.9026 lag 0 |d| 1.56 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_16__ai-assistant in 60.9 s
+
+[ni30_16__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.2 dB, flicker ratio mouth 1.000, error flicker 0.038, sharpness 1.001, lip corr 1.0000 lag 0 |d| 0.02 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1086, mouth PSNR 25.8 dB, flicker ratio mouth 0.881, error flicker 2.858, sharpness 0.709, lip corr 0.9254 lag 0 |d| 1.72 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1086, mouth PSNR 25.8 dB, flicker ratio mouth 0.881, error flicker 2.858, sharpness 0.709, lip corr 0.9254 lag 0 |d| 1.72 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_16__eng in 59.0 s
+
+[ni30_17__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.3 dB, flicker ratio mouth 1.000, error flicker 0.038, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.02 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1042, mouth PSNR 28.8 dB, flicker ratio mouth 0.730, error flicker 2.922, sharpness 0.594, lip corr 0.8873 lag 0 |d| 2.05 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1042, mouth PSNR 28.8 dB, flicker ratio mouth 0.730, error flicker 2.922, sharpness 0.594, lip corr 0.8866 lag 0 |d| 2.06 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_17__ai-assistant in 52.2 s
+
+[ni30_17__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.3 dB, flicker ratio mouth 1.000, error flicker 0.038, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.02 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.0982, mouth PSNR 29.3 dB, flicker ratio mouth 0.692, error flicker 2.516, sharpness 0.569, lip corr 0.9266 lag 0 |d| 1.57 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.0982, mouth PSNR 29.3 dB, flicker ratio mouth 0.692, error flicker 2.517, sharpness 0.569, lip corr 0.9265 lag 0 |d| 1.57 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_17__eng in 52.8 s
+
+[ni30_18__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.1 dB, flicker ratio mouth 1.000, error flicker 0.040, sharpness 1.000, lip corr 0.9999 lag 0 |d| 0.04 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1135, mouth PSNR 27.2 dB, flicker ratio mouth 0.898, error flicker 3.049, sharpness 0.962, lip corr 0.9468 lag 0 |d| 1.10 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1135, mouth PSNR 27.2 dB, flicker ratio mouth 0.898, error flicker 3.050, sharpness 0.963, lip corr 0.9465 lag 0 |d| 1.10 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_18__ai-assistant in 63.9 s
+
+[ni30_18__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.0 dB, flicker ratio mouth 1.000, error flicker 0.040, sharpness 1.000, lip corr 0.9999 lag 0 |d| 0.03 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1090, mouth PSNR 27.9 dB, flicker ratio mouth 0.830, error flicker 2.710, sharpness 0.929, lip corr 0.9419 lag 0 |d| 1.38 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1089, mouth PSNR 27.9 dB, flicker ratio mouth 0.830, error flicker 2.710, sharpness 0.930, lip corr 0.9427 lag 0 |d| 1.37 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_18__eng in 64.5 s
+
+[ni30_19__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.0 dB, flicker ratio mouth 1.000, error flicker 0.040, sharpness 1.000, lip corr 0.9991 lag 0 |d| 0.17 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1377, mouth PSNR 25.0 dB, flicker ratio mouth 0.856, error flicker 3.507, sharpness 0.816, lip corr 0.8729 lag -1 |d| 2.88 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1376, mouth PSNR 25.0 dB, flicker ratio mouth 0.856, error flicker 3.507, sharpness 0.816, lip corr 0.8741 lag -1 |d| 2.87 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_19__ai-assistant in 82.6 s
+
+[ni30_19__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 64.8 dB, flicker ratio mouth 1.000, error flicker 0.042, sharpness 1.000, lip corr 0.9991 lag 0 |d| 0.15 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1287, mouth PSNR 25.5 dB, flicker ratio mouth 0.830, error flicker 2.969, sharpness 0.844, lip corr 0.8620 lag -1 |d| 2.79 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1287, mouth PSNR 25.5 dB, flicker ratio mouth 0.829, error flicker 2.969, sharpness 0.844, lip corr 0.8640 lag -1 |d| 2.78 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_19__eng in 66.4 s
+
+[ni30_20__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 66.0 dB, flicker ratio mouth 1.000, error flicker 0.032, sharpness 1.000, lip corr 0.9999 lag 0 |d| 0.04 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1324, mouth PSNR 23.3 dB, flicker ratio mouth 1.018, error flicker 3.505, sharpness 0.621, lip corr 0.8965 lag 0 |d| 1.51 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1324, mouth PSNR 23.3 dB, flicker ratio mouth 1.017, error flicker 3.505, sharpness 0.621, lip corr 0.8965 lag 0 |d| 1.51 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_20__ai-assistant in 63.6 s
+
+[ni30_20__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 66.0 dB, flicker ratio mouth 1.000, error flicker 0.032, sharpness 1.000, lip corr 0.9999 lag 0 |d| 0.03 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1231, mouth PSNR 24.6 dB, flicker ratio mouth 0.991, error flicker 2.807, sharpness 0.651, lip corr 0.8852 lag -1 |d| 1.54 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1231, mouth PSNR 24.6 dB, flicker ratio mouth 0.991, error flicker 2.807, sharpness 0.651, lip corr 0.8859 lag -1 |d| 1.53 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_20__eng in 59.8 s
+
+[ni30_21__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.7 dB, flicker ratio mouth 1.000, error flicker 0.035, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.03 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1401, mouth PSNR 22.9 dB, flicker ratio mouth 0.843, error flicker 3.829, sharpness 0.898, lip corr 0.8700 lag 0 |d| 1.52 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1401, mouth PSNR 22.9 dB, flicker ratio mouth 0.842, error flicker 3.829, sharpness 0.898, lip corr 0.8695 lag 0 |d| 1.53 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_21__ai-assistant in 56.7 s
+
+[ni30_21__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.5 dB, flicker ratio mouth 1.000, error flicker 0.036, sharpness 1.000, lip corr 0.9999 lag 0 |d| 0.03 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1355, mouth PSNR 23.7 dB, flicker ratio mouth 0.794, error flicker 3.253, sharpness 0.851, lip corr 0.8598 lag -1 |d| 1.52 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1355, mouth PSNR 23.7 dB, flicker ratio mouth 0.794, error flicker 3.253, sharpness 0.851, lip corr 0.8596 lag -1 |d| 1.52 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_21__eng in 63.3 s
+
+[ni30_22__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.8 dB, flicker ratio mouth 1.000, error flicker 0.033, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.03 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1242, mouth PSNR 25.6 dB, flicker ratio mouth 0.924, error flicker 2.851, sharpness 0.750, lip corr 0.9203 lag 0 |d| 1.54 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1242, mouth PSNR 25.6 dB, flicker ratio mouth 0.923, error flicker 2.850, sharpness 0.750, lip corr 0.9203 lag 0 |d| 1.54 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_22__ai-assistant in 55.9 s
+
+[ni30_22__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.9 dB, flicker ratio mouth 1.000, error flicker 0.033, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.02 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1143, mouth PSNR 26.9 dB, flicker ratio mouth 0.870, error flicker 2.381, sharpness 0.747, lip corr 0.9650 lag 0 |d| 1.11 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1143, mouth PSNR 26.9 dB, flicker ratio mouth 0.870, error flicker 2.381, sharpness 0.746, lip corr 0.9651 lag 0 |d| 1.11 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_22__eng in 56.9 s
+
+[ni30_23__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 64.8 dB, flicker ratio mouth 1.000, error flicker 0.042, sharpness 1.000, lip corr 0.9976 lag 0 |d| 0.16 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1047, mouth PSNR 26.9 dB, flicker ratio mouth 0.978, error flicker 2.687, sharpness 1.075, lip corr 0.9297 lag 0 |d| 0.99 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1047, mouth PSNR 26.9 dB, flicker ratio mouth 0.978, error flicker 2.687, sharpness 1.075, lip corr 0.9303 lag 0 |d| 0.99 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_23__ai-assistant in 59.4 s
+
+[ni30_23__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 64.8 dB, flicker ratio mouth 1.000, error flicker 0.042, sharpness 1.000, lip corr 0.9980 lag 0 |d| 0.16 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.0987, mouth PSNR 27.8 dB, flicker ratio mouth 0.886, error flicker 2.316, sharpness 1.014, lip corr 0.9327 lag 0 |d| 1.03 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.0987, mouth PSNR 27.8 dB, flicker ratio mouth 0.886, error flicker 2.316, sharpness 1.013, lip corr 0.9312 lag 0 |d| 1.04 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_23__eng in 61.0 s
+
+[ni30_24__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 64.9 dB, flicker ratio mouth 1.000, error flicker 0.041, sharpness 1.000, lip corr 0.9999 lag 0 |d| 0.04 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1164, mouth PSNR 27.9 dB, flicker ratio mouth 0.836, error flicker 2.793, sharpness 0.826, lip corr 0.9242 lag 0 |d| 1.75 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1164, mouth PSNR 27.9 dB, flicker ratio mouth 0.836, error flicker 2.794, sharpness 0.826, lip corr 0.9242 lag 0 |d| 1.76 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_24__ai-assistant in 62.2 s
+
+[ni30_24__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 64.9 dB, flicker ratio mouth 1.000, error flicker 0.041, sharpness 1.000, lip corr 0.9999 lag 0 |d| 0.04 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1121, mouth PSNR 28.7 dB, flicker ratio mouth 0.795, error flicker 2.286, sharpness 0.769, lip corr 0.9431 lag 0 |d| 1.69 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1121, mouth PSNR 28.7 dB, flicker ratio mouth 0.795, error flicker 2.286, sharpness 0.769, lip corr 0.9434 lag 0 |d| 1.69 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_24__eng in 60.8 s
+
+[ni30_25__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.8 dB, flicker ratio mouth 1.000, error flicker 0.034, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.02 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.0926, mouth PSNR 29.4 dB, flicker ratio mouth 0.866, error flicker 2.622, sharpness 0.689, lip corr 0.9217 lag 0 |d| 1.20 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.0926, mouth PSNR 29.4 dB, flicker ratio mouth 0.866, error flicker 2.622, sharpness 0.689, lip corr 0.9217 lag 0 |d| 1.20 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_25__ai-assistant in 63.1 s
+
+[ni30_25__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.9 dB, flicker ratio mouth 1.000, error flicker 0.033, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.02 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.0877, mouth PSNR 30.1 dB, flicker ratio mouth 0.827, error flicker 2.230, sharpness 0.706, lip corr 0.9476 lag 0 |d| 1.29 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.0877, mouth PSNR 30.1 dB, flicker ratio mouth 0.827, error flicker 2.230, sharpness 0.706, lip corr 0.9479 lag 0 |d| 1.29 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_25__eng in 59.9 s
+
+[ni30_26__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.9 dB, flicker ratio mouth 1.000, error flicker 0.033, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.03 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1285, mouth PSNR 24.9 dB, flicker ratio mouth 0.882, error flicker 3.406, sharpness 0.785, lip corr 0.9307 lag 0 |d| 2.02 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1285, mouth PSNR 24.9 dB, flicker ratio mouth 0.882, error flicker 3.406, sharpness 0.785, lip corr 0.9305 lag 0 |d| 2.02 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_26__ai-assistant in 60.1 s
+
+[ni30_26__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.8 dB, flicker ratio mouth 1.000, error flicker 0.034, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.02 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1164, mouth PSNR 26.1 dB, flicker ratio mouth 0.831, error flicker 2.895, sharpness 0.732, lip corr 0.9647 lag 0 |d| 1.43 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1164, mouth PSNR 26.1 dB, flicker ratio mouth 0.831, error flicker 2.895, sharpness 0.732, lip corr 0.9648 lag 0 |d| 1.43 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_26__eng in 63.8 s
+
+[ni30_27__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.2 dB, flicker ratio mouth 1.000, error flicker 0.039, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.03 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1348, mouth PSNR 24.7 dB, flicker ratio mouth 0.871, error flicker 3.399, sharpness 0.819, lip corr 0.8870 lag 0 |d| 2.60 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1348, mouth PSNR 24.7 dB, flicker ratio mouth 0.871, error flicker 3.400, sharpness 0.819, lip corr 0.8875 lag 0 |d| 2.60 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_27__ai-assistant in 59.3 s
+
+[ni30_27__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 65.3 dB, flicker ratio mouth 1.000, error flicker 0.038, sharpness 1.000, lip corr 1.0000 lag 0 |d| 0.02 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1266, mouth PSNR 25.4 dB, flicker ratio mouth 0.822, error flicker 2.822, sharpness 0.875, lip corr 0.9273 lag 0 |d| 2.31 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1266, mouth PSNR 25.4 dB, flicker ratio mouth 0.822, error flicker 2.822, sharpness 0.875, lip corr 0.9269 lag 0 |d| 2.31 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_27__eng in 61.4 s
+
+[ni30_28__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 64.6 dB, flicker ratio mouth 1.000, error flicker 0.044, sharpness 1.000, lip corr 0.9996 lag 0 |d| 0.07 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1289, mouth PSNR 26.5 dB, flicker ratio mouth 0.851, error flicker 3.331, sharpness 0.815, lip corr 0.9192 lag 0 |d| 1.22 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1289, mouth PSNR 26.5 dB, flicker ratio mouth 0.851, error flicker 3.331, sharpness 0.815, lip corr 0.9183 lag 0 |d| 1.22 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_28__ai-assistant in 58.2 s
+
+[ni30_28__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 64.7 dB, flicker ratio mouth 1.000, error flicker 0.044, sharpness 1.000, lip corr 0.9999 lag 0 |d| 0.05 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1214, mouth PSNR 27.5 dB, flicker ratio mouth 0.804, error flicker 2.775, sharpness 0.770, lip corr 0.9487 lag 0 |d| 0.99 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1214, mouth PSNR 27.5 dB, flicker ratio mouth 0.804, error flicker 2.775, sharpness 0.770, lip corr 0.9500 lag 0 |d| 0.97 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_28__eng in 60.7 s
+
+[ni30_29__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 64.5 dB, flicker ratio mouth 1.000, error flicker 0.045, sharpness 1.000, lip corr 0.9986 lag 0 |d| 0.13 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1509, mouth PSNR 23.2 dB, flicker ratio mouth 0.940, error flicker 3.791, sharpness 0.920, lip corr 0.8592 lag 0 |d| 1.69 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1509, mouth PSNR 23.2 dB, flicker ratio mouth 0.940, error flicker 3.791, sharpness 0.920, lip corr 0.8580 lag 0 |d| 1.70 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_29__ai-assistant in 57.7 s
+
+[ni30_29__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 64.4 dB, flicker ratio mouth 1.000, error flicker 0.046, sharpness 1.000, lip corr 0.9984 lag 0 |d| 0.14 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1409, mouth PSNR 24.1 dB, flicker ratio mouth 0.897, error flicker 3.180, sharpness 0.854, lip corr 0.8657 lag 0 |d| 1.68 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1409, mouth PSNR 24.1 dB, flicker ratio mouth 0.897, error flicker 3.180, sharpness 0.854, lip corr 0.8655 lag 0 |d| 1.69 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_29__eng in 59.4 s
+
+[ni30_30__ai-assistant] 250 frames
+  N: latent mae 0.0004, mouth PSNR 64.5 dB, flicker ratio mouth 1.000, error flicker 0.044, sharpness 1.000, lip corr 0.9996 lag 0 |d| 0.11 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1085, mouth PSNR 25.6 dB, flicker ratio mouth 0.854, error flicker 4.021, sharpness 0.771, lip corr 0.8619 lag -1 |d| 2.18 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1085, mouth PSNR 25.6 dB, flicker ratio mouth 0.854, error flicker 4.021, sharpness 0.771, lip corr 0.8631 lag -1 |d| 2.16 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_30__ai-assistant in 59.2 s
+
+[ni30_30__eng] 250 frames
+  N: latent mae 0.0004, mouth PSNR 64.3 dB, flicker ratio mouth 1.000, error flicker 0.047, sharpness 1.000, lip corr 0.9990 lag 0 |d| 0.15 px | r5 pass | vs D not_evaluated
+  S: latent mae 0.1031, mouth PSNR 26.1 dB, flicker ratio mouth 0.795, error flicker 3.550, sharpness 0.820, lip corr 0.8998 lag -1 |d| 1.98 px | r5 FAIL | vs D not_evaluated
+  S16: latent mae 0.1031, mouth PSNR 26.1 dB, flicker ratio mouth 0.795, error flicker 3.550, sharpness 0.820, lip corr 0.8987 lag -1 |d| 1.99 px | r5 FAIL | vs D not_evaluated
+  wrote /workspace/new_identity_review/out/review/ni30_30__eng in 61.4 s
+
+NEW_STATIC_R5 verdicts: N PASS (60/60 r5), S FAIL (0/60 r5), S16 FAIL (0/60 r5)
+D not evaluated; static portraits; no universal or on-device ANE quality claim.
+REVIEW_DONE

@@ -1,0 +1,382 @@
+{
+  "clip": "japanese_realtime_talking_7d94520b7f__ai-assistant",
+  "identity": "japanese_realtime_talking_7d94520b7f",
+  "audio": "/workspace/distill/inputs/audio/review/ai-assistant.mpga",
+  "frames": 250,
+  "fps": 25,
+  "frame_size": [
+    512,
+    832
+  ],
+  "face_box": [
+    132,
+    108,
+    250,
+    388
+  ],
+  "mouth_box": [
+    178,
+    349,
+    160,
+    98
+  ],
+  "box_source": "review_mixed_units (D's boxes)",
+  "arms": {
+    "A": "full UNet fp32, TF32 off, NVIDIA GeForce RTX 3090 + torch TAESD fp32",
+    "N": "full UNet fp16, NVIDIA GeForce RTX 3090 + torch TAESD fp32",
+    "S": "student bk_tiny_best.pt fp32, TF32 off, NVIDIA GeForce RTX 3090 + torch TAESD fp32",
+    "S16": "student bk_tiny_best.pt fp16, NVIDIA GeForce RTX 3090 + torch TAESD fp32"
+  },
+  "unet_ms_per_frame": {
+    "A": 15.86,
+    "N": 6.04,
+    "S": 8.03,
+    "S16": 3.36
+  },
+  "latent_vs_A": {
+    "N": {
+      "mae": 0.00038,
+      "max_abs": 0.0633,
+      "p95_abs": 0.0011
+    },
+    "S": {
+      "mae": 0.10481,
+      "max_abs": 4.1774,
+      "p95_abs": 0.4399
+    },
+    "S16": {
+      "mae": 0.10482,
+      "max_abs": 4.1787,
+      "p95_abs": 0.4399
+    }
+  },
+  "error_flicker_mouth": {
+    "N": 0.031,
+    "S": 3.8757,
+    "S16": 3.8758
+  },
+  "error_flicker_face": {
+    "N": 0.0073,
+    "S": 0.8268,
+    "S16": 0.8268
+  },
+  "aperture": {
+    "N_vs_A": {
+      "frames": 250,
+      "corr": 0.99996,
+      "lag_frames": 0,
+      "mean_abs_delta_px": 0.0402,
+      "p95_abs_delta_px": 0.102,
+      "mean_aperture_px_A": 10.8,
+      "mean_aperture_px_B": 10.801
+    },
+    "S_vs_A": {
+      "frames": 250,
+      "corr": 0.64187,
+      "lag_frames": -1,
+      "mean_abs_delta_px": 3.2919,
+      "p95_abs_delta_px": 10.9926,
+      "mean_aperture_px_A": 10.8,
+      "mean_aperture_px_B": 10.535
+    },
+    "S16_vs_A": {
+      "frames": 250,
+      "corr": 0.64208,
+      "lag_frames": -1,
+      "mean_abs_delta_px": 3.2921,
+      "p95_abs_delta_px": 10.9841,
+      "mean_aperture_px_A": 10.8,
+      "mean_aperture_px_B": 10.535
+    }
+  },
+  "N_vs_A": {
+    "raw_face": {
+      "mae_255": 0.0172,
+      "max_abs_255": 3,
+      "psnr_db": 65.79
+    },
+    "face_box": {
+      "psnr_db": 72.45,
+      "ssim": 0.99997,
+      "flicker_ref": 2.9894,
+      "flicker_cand": 2.9894,
+      "flicker_ratio": 1.0
+    },
+    "mouth_roi": {
+      "psnr_db": 66.15,
+      "ssim": 0.99987,
+      "flicker_ref": 3.7696,
+      "flicker_cand": 3.7694,
+      "flicker_ratio": 1.0
+    },
+    "mouth_sharpness": {
+      "ref": 28.83,
+      "cand": 28.83,
+      "ratio": 1.0002
+    },
+    "lab_shift_face_box": 0.0018
+  },
+  "S_vs_A": {
+    "raw_face": {
+      "mae_255": 3.8058,
+      "max_abs_255": 189,
+      "psnr_db": 28.43
+    },
+    "face_box": {
+      "psnr_db": 33.79,
+      "ssim": 0.98362,
+      "flicker_ref": 2.9894,
+      "flicker_cand": 2.9968,
+      "flicker_ratio": 1.0025
+    },
+    "mouth_roi": {
+      "psnr_db": 26.62,
+      "ssim": 0.92005,
+      "flicker_ref": 3.7696,
+      "flicker_cand": 3.7685,
+      "flicker_ratio": 0.9997
+    },
+    "mouth_sharpness": {
+      "ref": 28.83,
+      "cand": 25.07,
+      "ratio": 0.8696
+    },
+    "lab_shift_face_box": 0.2489
+  },
+  "S16_vs_A": {
+    "raw_face": {
+      "mae_255": 3.8067,
+      "max_abs_255": 189,
+      "psnr_db": 28.43
+    },
+    "face_box": {
+      "psnr_db": 33.8,
+      "ssim": 0.98362,
+      "flicker_ref": 2.9894,
+      "flicker_cand": 2.9969,
+      "flicker_ratio": 1.0025
+    },
+    "mouth_roi": {
+      "psnr_db": 26.62,
+      "ssim": 0.92006,
+      "flicker_ref": 3.7696,
+      "flicker_cand": 3.769,
+      "flicker_ratio": 0.9999
+    },
+    "mouth_sharpness": {
+      "ref": 28.83,
+      "cand": 25.07,
+      "ratio": 0.8695
+    },
+    "lab_shift_face_box": 0.2501
+  },
+  "latent_S16_vs_S_mae": 0.00027,
+  "D": {
+    "frames": 250,
+    "fps": 25,
+    "face_box": [
+      132,
+      108,
+      250,
+      388
+    ],
+    "mouth_box": [
+      178,
+      349,
+      160,
+      98
+    ],
+    "aperture_frames": 250,
+    "latent_mae": 0.01684,
+    "lip_corr": 0.96293,
+    "lip_lag_frames": 0,
+    "lip_mean_abs_delta_px": 0.9047,
+    "mouth_psnr_db": 39.48,
+    "mouth_flicker_ratio": 1.0009,
+    "error_flicker_mouth": 1.1836,
+    "mouth_sharpness_ratio": 0.983,
+    "r5": "FAIL"
+  },
+  "vs_D": {
+    "N": {
+      "status": "pass",
+      "checks": {
+        "lip_corr": {
+          "value": 0.99996,
+          "D": 0.96293,
+          "delta_vs_D": 0.03703000000000001,
+          "bound": 0.96293,
+          "pass": true
+        },
+        "lip_mean_abs_delta_px": {
+          "value": 0.0402,
+          "D": 0.9047,
+          "delta_vs_D": -0.8644999999999999,
+          "bound": 0.9047,
+          "pass": true
+        },
+        "mouth_psnr_db": {
+          "value": 66.15,
+          "D": 39.48,
+          "delta_vs_D": 26.67000000000001,
+          "bound": 39.48,
+          "pass": true
+        },
+        "mouth_sharpness_ratio": {
+          "value": 1.0002,
+          "D": 0.983,
+          "delta_vs_D": 0.017199999999999993,
+          "bound": 0.983,
+          "pass": true
+        },
+        "error_flicker_mouth": {
+          "value": 0.031,
+          "D": 1.1836,
+          "delta_vs_D": -1.1526,
+          "bound": 1.1836,
+          "pass": true
+        },
+        "mouth_flicker_ratio": {
+          "value": 1.0,
+          "D": 1.0009,
+          "delta_vs_D": -0.0008999999999999009,
+          "bound": 1.0009,
+          "pass": true
+        }
+      },
+      "incomplete_because": []
+    },
+    "S": {
+      "status": "FAIL",
+      "checks": {
+        "lip_corr": {
+          "value": 0.64187,
+          "D": 0.96293,
+          "delta_vs_D": -0.3210599999999999,
+          "bound": 0.96293,
+          "pass": false
+        },
+        "lip_mean_abs_delta_px": {
+          "value": 3.2919,
+          "D": 0.9047,
+          "delta_vs_D": 2.3872,
+          "bound": 0.9047,
+          "pass": false
+        },
+        "mouth_psnr_db": {
+          "value": 26.62,
+          "D": 39.48,
+          "delta_vs_D": -12.859999999999996,
+          "bound": 39.48,
+          "pass": false
+        },
+        "mouth_sharpness_ratio": {
+          "value": 0.8696,
+          "D": 0.983,
+          "delta_vs_D": -0.11339999999999995,
+          "bound": 0.983,
+          "pass": false
+        },
+        "error_flicker_mouth": {
+          "value": 3.8757,
+          "D": 1.1836,
+          "delta_vs_D": 2.6921,
+          "bound": 1.1836,
+          "pass": false
+        },
+        "mouth_flicker_ratio": {
+          "value": 0.9997,
+          "D": 1.0009,
+          "delta_vs_D": -0.0011999999999998678,
+          "bound": 1.0009,
+          "pass": true
+        }
+      },
+      "incomplete_because": []
+    },
+    "S16": {
+      "status": "FAIL",
+      "checks": {
+        "lip_corr": {
+          "value": 0.64208,
+          "D": 0.96293,
+          "delta_vs_D": -0.32084999999999997,
+          "bound": 0.96293,
+          "pass": false
+        },
+        "lip_mean_abs_delta_px": {
+          "value": 3.2921,
+          "D": 0.9047,
+          "delta_vs_D": 2.3874,
+          "bound": 0.9047,
+          "pass": false
+        },
+        "mouth_psnr_db": {
+          "value": 26.62,
+          "D": 39.48,
+          "delta_vs_D": -12.859999999999996,
+          "bound": 39.48,
+          "pass": false
+        },
+        "mouth_sharpness_ratio": {
+          "value": 0.8695,
+          "D": 0.983,
+          "delta_vs_D": -0.11349999999999993,
+          "bound": 0.983,
+          "pass": false
+        },
+        "error_flicker_mouth": {
+          "value": 3.8758,
+          "D": 1.1836,
+          "delta_vs_D": 2.6921999999999997,
+          "bound": 1.1836,
+          "pass": false
+        },
+        "mouth_flicker_ratio": {
+          "value": 0.9999,
+          "D": 1.0009,
+          "delta_vs_D": -0.0009999999999998899,
+          "bound": 1.0009,
+          "pass": true
+        }
+      },
+      "incomplete_because": []
+    }
+  },
+  "r5_gates_N": {
+    "flicker_mouth_ratio_le_1.05": true,
+    "flicker_face_ratio_le_1.05": true,
+    "mouth_sharpness_ratio_ge_0.95": true,
+    "aperture_corr_ge_0.97": true,
+    "aperture_lag_0": true,
+    "aperture_mean_abs_delta_le_0.5px": true,
+    "all_pass": true
+  },
+  "r5_gates_S": {
+    "flicker_mouth_ratio_le_1.05": true,
+    "flicker_face_ratio_le_1.05": true,
+    "mouth_sharpness_ratio_ge_0.95": false,
+    "aperture_corr_ge_0.97": false,
+    "aperture_lag_0": false,
+    "aperture_mean_abs_delta_le_0.5px": false,
+    "all_pass": false
+  },
+  "r5_gates_S16": {
+    "flicker_mouth_ratio_le_1.05": true,
+    "flicker_face_ratio_le_1.05": true,
+    "mouth_sharpness_ratio_ge_0.95": false,
+    "aperture_corr_ge_0.97": false,
+    "aperture_lag_0": false,
+    "aperture_mean_abs_delta_le_0.5px": false,
+    "all_pass": false
+  },
+  "files": {
+    "dir": "/workspace/distill/out/review/japanese_realtime_talking_7d94520b7f__ai-assistant",
+    "labelled": "japanese_realtime_talking_7d94520b7f__ai-assistant_AS.mp4",
+    "A": "A.mp4",
+    "N": "N.mp4",
+    "S": "S.mp4",
+    "S16": "S16.mp4"
+  },
+  "wall_s": 71.5
+}
